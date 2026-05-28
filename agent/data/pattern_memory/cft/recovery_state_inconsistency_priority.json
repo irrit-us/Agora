@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Recovery_State_Inconsistency_Priority",
+  "protocol_type": "cft",
+  "description": "Distributed systems often persist state in multiple segments (Logs, Snapshots, Metadata). If these segments are not updated atomically, a crash can leave them in an inconsistent state (e.g., Snapshot is from Epoch N, but Metadata says Epoch N-1).",
+  "fault_type": "crash_recovery",
+  "bug_category": "safety",
+  "trigger_condition": "Partial persistence failure where one state component (e.g., Snapshot) is fresher than another (e.g., HardState/Metadata) upon restart.",
+  "test_template": "1.  **Setup:** Initialize a mock storage backend for the target protocol.",
+  "discovered_in_repo": "raft",
+  "discovery_date": "2026-01-27T02:55:46.780389",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 1592789,
+    "api_cost": 2.0169386
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

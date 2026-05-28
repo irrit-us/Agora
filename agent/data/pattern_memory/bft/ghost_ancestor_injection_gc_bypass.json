@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Ghost Ancestor Injection (GC Bypass)",
+  "protocol_type": "bft",
+  "description": "The protocol allows blocks to reference ancestors that are below the Garbage Collection (GC) round without verifying that these ancestors match the canonical committed history (e.g., via checkpoints). This allows an attacker to inject a \"Ghost Block\" at the GC boundary (Round = GC) that conflicts with the honest history, and then build a valid chain on top of it. The victim node accepts the new chain because it assumes any missing dependency below GC is \"ancient history\" and can be safely ignored, bypassing safety checks.",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "Block B references Parent P; B.round > GC_Round; P.round <= GC_Round; P is missing or conflicting.",
+  "test_template": "1. Setup a committee and advance the DAG until Round X.\n2. Trigger Garbage Collection (GC) up to Round Y (where Y < X).\n3. Attacker constructs a \"Ghost Block\" G at Round Y (or Y-1) that conflicts with the honest block at that round (different payload/digest).\n4. Attacker builds a chain of blocks on top of G: G <- B1 <- B2 ... <- Tip.\n5. Attacker sends Tip to the victim.\n6. Victim fetches ancestors.\n7. When victim receives B1 (Round > GC) which references G (Round <= GC), it MUST NOT accept B1 if G is not part of the canonical history.\n8. Vulnerability: Victim accepts B1 because it ignores the missing/conflicting status of parent G due to G being below the GC watermark.",
+  "discovered_in_repo": "sui",
+  "discovery_date": "2026-01-24T16:07:10.108055",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

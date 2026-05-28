@@ -1,0 +1,23 @@
+{
+  "tags": [
+    "bug_pattern",
+    "deadlock",
+    "lock_hierarchy",
+    "view_change",
+    "liveness",
+    "hotstuff",
+    "parent_child_dependency"
+  ],
+  "context": {
+    "issue_url": "https://github.com/relab/hotstuff/issues/24",
+    "bug_category": "deadlock",
+    "pattern_type": "lock_hierarchy_violation",
+    "identified_by": "user (joe-zxh)",
+    "trigger": "view change with out-of-order block arrival",
+    "symptom": "CPU drops from 200% to <10%, servers unresponsive",
+    "fix_approach": "use single HotStuffCore mutex instead of per-block locks"
+  },
+  "pattern_id": "Lock hierarchy violation causing parent-child dependency deadlock during view change",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Lock Hierarchy Violation Causing Parent-Child Dependency Deadlock. DESCRIPTION: HotStuff servers lose liveness after running for some time - CPU drops from 200% to <10% and servers stop responding. The issue is triggered more frequently during view changes, especially with lower view-timeout values. ROOT CAUSE: Deadlock caused by incorrect lock usage. Blocks were using their own mutex for locking instead of using HotStuffCore's mutex. When a block needs to wait for its parent block to arrive, and both use separate locks, a deadlock can occur: (1) Block B holds its own lock, waiting for parent A, (2) Block A processing needs lock that B indirectly holds, (3) Neither can proceed. SCENARIO: (1) View change occurs, blocks arrive out of order, (2) Child block arrives before parent, (3) Child block waits for parent using wrong lock scope, (4) Deadlock forms between block processing and parent waiting, (5) All consensus stops - liveness lost. FIX: Use HotStuffCore's mutex (hs.Mut.Lock()) for all block operations instead of per-block locks. The PutBlock function should: acquire core lock, check if parent exists, if not wait on condition variable, then put block and broadcast. LESSON: In consensus protocols with parent-child block dependencies, use a single lock hierarchy for all block operations. Per-object locks with cross-object dependencies easily lead to deadlocks. Condition variables for waiting should share the same mutex as the data structures they protect."
+}

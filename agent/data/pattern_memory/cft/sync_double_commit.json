@@ -1,0 +1,29 @@
+{
+  "tags": [
+    "bug_pattern",
+    "liveness",
+    "cft",
+    "fabric",
+    "smartbft",
+    "sync",
+    "double_commit",
+    "recovery"
+  ],
+  "context": {
+    "issue_url": "https://github.com/hyperledger/fabric/issues/5076",
+    "bug_category": "liveness",
+    "pattern_type": "sync_double_commit",
+    "source_number": 5076,
+    "is_pr": false,
+    "confirmed_by": "pfi79 (contributor)"
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-04T18:10:00",
+  "embedded": false,
+  "pattern_id": "Sync buffer double commit panic - already-committed block re-selected for synchronization",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: Ordering node panic during synchronization due to attempting to commit already-committed block. DESCRIPTION: In a SmartBFT cluster with nodes being repeatedly stopped and started, an ordering node panics during the recovery/sync phase. The sync buffer fetches block 223 and commits it, but then the same block is selected again for synchronization (sequences 223-236). When the node attempts to submit block 223 a second time, it panics. ROOT CAUSE: The synchronization buffer's block range calculation does not properly exclude already-committed blocks. There's a race between the commit completion and the next sync range calculation, allowing committed blocks to be re-selected for fetching. LESSON: In distributed sync/recovery mechanisms: 1) Always check if a block is already committed BEFORE adding it to the sync queue; 2) Use proper synchronization between commit completion and sync range updates; 3) Implement idempotent commit operations that gracefully handle duplicates; 4) Test recovery scenarios with rapid stop/start cycles; 5) The window between 'committed' and 'sync queue updated' is a critical section that needs protection."
+}

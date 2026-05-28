@@ -1,0 +1,22 @@
+{
+  "tags": [
+    "bug_pattern",
+    "wrong_variable",
+    "role_check",
+    "leader_transfer",
+    "learner",
+    "raft"
+  ],
+  "context": {
+    "issue_url": "https://github.com/tikv/raft-rs/issues/164",
+    "bug_category": "safety",
+    "pattern_type": "wrong_variable_check",
+    "confirmed_by": "contributor (hicqu)",
+    "code_location": "raft.rs handle_transfer_leader lines 1206-1211",
+    "wrong_check": "self.is_learner (always false for leader)",
+    "correct_check": "target_progress.is_learner"
+  },
+  "pattern_id": "Wrong variable check - self.is_learner instead of target.is_learner in leader transfer",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: Wrong Variable Check in Role Validation. DESCRIPTION: In handle_transfer_leader, the code incorrectly checks self.is_learner instead of checking whether the transfer target is a learner. Since self is the leader and leaders are never learners, self.is_learner is always false, making the check useless. ROOT CAUSE: Variable confusion - checking the wrong object's property. The intent was to prevent leader transfer to a learner node, but the code checked if the current leader is a learner (which is impossible) instead of checking if the target Progress is a learner. IMPACT: Leader transfer may attempt to transfer leadership to a learner node, which should not become a leader. This can break cluster state as learners are non-voting members meant only to receive log replication. FIX: Change the check from self.is_learner to target_progress.is_learner to properly validate that the transfer target is not a learner. LESSON: When implementing role-based checks, carefully verify which object's role is being checked. In leader/follower/learner systems, it's easy to confuse 'self' with 'target' or 'peer'. Always trace the variable to ensure the check is on the intended object."
+}

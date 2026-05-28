@@ -1,0 +1,294 @@
+{
+  "repo": "go-ethereum",
+  "language": "go",
+  "last_updated": "2026-03-28T15:31:26.969455",
+  "package_name": null,
+  "module_path": null,
+  "test_structure": {
+    "test_dirs": [],
+    "test_pattern": "*_test.go",
+    "main_test_files": [],
+    "test_framework": null
+  },
+  "coding_style": {
+    "naming_convention": "TestXxx",
+    "setup_pattern": null,
+    "teardown_pattern": null,
+    "assertion_style": null,
+    "common_imports": [],
+    "error_handling_style": null
+  },
+  "helper_functions": [
+    {
+      "name": "startEthServiceWithDataDir",
+      "file": "eth/catalyst/phantom_valid_payload_test.go",
+      "purpose": "Creates a full node instance for testing, backed by a persistent datadir so tests can simulate restart/crash scenarios while keeping chain DB on disk.",
+      "signature": "func startEthServiceWithDataDir(t testing.TB, datadir string, genesis *core.Genesis, blocks []*types.Block) (*node.Node, *eth.Ethereum)",
+      "parameters": [],
+      "usage_example": "genesis, chain := generateMergeChain(5, true)\ndatadir := t.TempDir()\nn, eth := startEthServiceWithDataDir(t, datadir, genesis, chain)\ndefer n.Close()",
+      "returns": "*node.Node and *eth.Ethereum with Engine API enabled in tests"
+    }
+  ],
+  "fault_injection": [],
+  "key_types": [],
+  "test_templates": {},
+  "setup_boilerplate": null,
+  "lessons_learned": [
+    {
+      "issue": "Need to regression-test ModExp precompile against panics when length header words are absurdly large but calldata is short",
+      "solution": "Add a core/vm test that constructs a 96-byte ModExp header with baseLen=expLen=math.MaxUint64, modLen=1 and calls bigModExp.RequiredGas and bigModExp.Run under defer-recover plus a time bound. Use big-endian uint64 placement in last 8 bytes of each 32-byte word.",
+      "timestamp": "2026-03-27T22:39:32.498578",
+      "related_files": [],
+      "error_pattern": "(?i)modexp.*panic|makeslice: len out of range|slice bounds out of range"
+    },
+    {
+      "issue": "`go test` failed with parse error: \"expected 'package', found '['\" in consensus/clique/*_test.go due to non-Go content committed in those files.",
+      "solution": "Replace/guard the non-Go files with `//go:build ignore` stubs (or remove them) so they are excluded from compilation and tests can run.",
+      "timestamp": "2026-03-27T23:01:38.692459",
+      "related_files": [],
+      "error_pattern": "expected 'package', found '\\['"
+    },
+    {
+      "issue": "eth/catalyst tests: assumed engine.ExecutionPayloadEnvelope has ResolveFull() method; build failed",
+      "solution": "assembleEnvelope in eth/catalyst/api_test.go already returns a fully resolved *engine.ExecutionPayloadEnvelope. Use envelope.ExecutionPayload directly and remove ResolveFull() call.",
+      "timestamp": "2026-03-27T23:22:59.388318",
+      "related_files": [],
+      "error_pattern": "ResolveFull undefined \\(type \\*engine\\.ExecutionPayloadEnvelope has no field or method ResolveFull\\)"
+    },
+    {
+      "issue": "go test parse error in crash_torn_invalid_laundered_test.go: expected '(', found cloneExecutableData",
+      "solution": "Missing closing braces in nested ifs caused the helper function to be parsed inside the test function. Fix by properly closing the if/if blocks before declaring helper functions at file scope.",
+      "timestamp": "2026-03-27T23:43:28.142334",
+      "related_files": [],
+      "error_pattern": "expected '\\\\('?, found cloneExecutableData"
+    },
+    {
+      "issue": "Need to build two sibling blocks with deterministic tx contents (not using txpool) for Engine API reorg tests",
+      "solution": "Use catalyst/testingAPI.BuildBlockV1 with explicit transactions override (hexutil.Bytes) to construct sibling payloads on same parent with different txs; this avoids miner tx selection nondeterminism and makes sibling hashes differ reliably.",
+      "timestamp": "2026-03-27T23:57:35.036165",
+      "related_files": [],
+      "error_pattern": null
+    },
+    {
+      "issue": "Directly opening chaindata with rawdb.Open in eth/catalyst tests can fail with \"ancient chain segments already extracted\" because the freezer/ancients path must match Node's ResolveAncient; avoid using rawdb.Open for direct inspection/mutation unless you also supply the correct Ancient directory.",
+      "solution": "For direct DB mutations in catalyst restart/crash tests, open the underlying kv store (pebble or leveldb) at n.ResolvePath(\"chaindata\") using rawdb.PreexistingDatabase to pick engine, and use rawdb.Write* / DeleteLegacyTrieNode on that kv store. Avoid rawdb.Open wrapper unless you can supply correct OpenOptions{Ancient: n.ResolveAncient(\"chaindata\", \"\")} (not easily available after restart).",
+      "timestamp": "2026-03-28T00:54:09.839850",
+      "related_files": [],
+      "error_pattern": "ancient chain segments already extracted"
+    },
+    {
+      "issue": "When simulating missing post-state in hash-scheme, deleting only the state root node hash may still cause chain repair/rewind or not reliably make StateAt fail; ensure the head remains at/after the target block while its state is missing by deleting C.Root only and letting restart repair keep head >= C (or craft chain so repair doesn't rewind behind C).",
+      "solution": "In phantom-finalized tests, keep head on a descendant E (state exists) and delete C.Root trie node in the kv store after clean shutdown. On restart, assert HasState(C.Root)==false and canonical mapping at C height still points to C; then call ForkchoiceUpdated with FinalizedBlockHash=C and assert it is not VALID.",
+      "timestamp": "2026-03-28T00:54:18.187233",
+      "related_files": [],
+      "error_pattern": "Head state missing, repairing"
+    },
+    {
+      "issue": "Used types.Header from BlockChain().CurrentBlock() as if it had Time() method; compilation failed with 'cannot call parent.Time (variable of type uint64)'.",
+      "solution": "In catalyst tests, CurrentBlock() returns *types.Header; access timestamp via parent.Time (field) not parent.Time(). Use header field consistently (e.g., parent.Time + 5).",
+      "timestamp": "2026-03-28T01:15:24.919970",
+      "related_files": [],
+      "error_pattern": "cannot call parent\\.Time \\(variable of type uint64\\)"
+    },
+    {
+      "issue": "go test failed with vet error 'non-constant format string in call to (*testing.common).Fatalf' when using t.Fatalf(strings.Join(...))",
+      "solution": "Use t.Fatalf(\"%s\", strings.Join(...)) (or t.Fatal) to avoid non-constant format string vet failure.",
+      "timestamp": "2026-03-28T01:51:44.585021",
+      "related_files": [],
+      "error_pattern": "non-constant format string in call to \\(\\*testing\\.common\\)\\.Fatalf"
+    },
+    {
+      "issue": "Compilation error in catalyst Engine API tests: tried to access ExecutableData.BeaconRoot field which doesn't exist; beacon root is passed separately to NewPayloadV3",
+      "solution": "Track the beaconRoot values alongside the built payloads (from PayloadAttributes.BeaconRoot) and pass that pointer explicitly into NewPayloadV3/NewPayloadV4 calls; do not assume ExecutableData contains BeaconRoot",
+      "timestamp": "2026-03-28T02:13:48.149617",
+      "related_files": [],
+      "error_pattern": "payload\\.BeaconRoot undefined"
+    },
+    {
+      "issue": "Sibling invalid-cache-scope test initially failed because it asserted the INVALID reason must include 'missing trie node' for a block built on a different node; H2 returned INVALID with 'invalid gas used (remote ... local ...)' instead.",
+      "solution": "Do not hard-require the exact ValidationError string for missing-state-induced INVALID when payload was constructed elsewhere; treat it as a non-fatal note/log, and assert only on statuses and sibling acceptance / forkchoice convergence.",
+      "timestamp": "2026-03-28T02:31:46.323719",
+      "related_files": [],
+      "error_pattern": "expected missing-trie-node failure mode.*invalid gas used"
+    },
+    {
+      "issue": "testingAPI.BuildBlockV1 failed with 'gas limit reached' when deploying test contract in payload P due to create tx gas exceeding block gas limit",
+      "solution": "Cap contract-creation tx gas to a conservative value below parent.GasLimit (e.g., min(1_000_000, parent.GasLimit-200_000)) to ensure BuildBlockV1 can include it",
+      "timestamp": "2026-03-28T02:43:38.910077",
+      "related_files": [],
+      "error_pattern": "failed to build payload P: gas limit reached"
+    },
+    {
+      "issue": "core tests using in-memory DB can still satisfy state reads after deleting trie nodes due to snapshot layers or repair logic; MissingNodeError precondition may not hold unless snapshots are disabled.",
+      "solution": "When simulating missing-trie-node in core.BlockChain tests on rawdb.NewMemoryDatabase, set BlockChainConfig.SnapshotLimit = 0 (disable snapshots). Also commit the trie (TrieDB().Commit(root,false)) before deleting nodes. Then restart chain with same options to ensure StateAt(root) triggers MissingNodeError.",
+      "timestamp": "2026-03-28T03:02:34.881204",
+      "related_files": [],
+      "error_pattern": "expected MissingNodeError.*got <nil>|unexpectedly able to read state after trie-node deletion"
+    },
+    {
+      "issue": "Engine FCU(head=known-but-unexecuted block) on missing parent state may fail with ValidateState error 'invalid gas used (remote ... local ...)' instead of MissingNodeError, because missing storage is treated as zero leading to different SSTORE gas accounting; this still indicates missing-state execution and can cause INVALID + bad-block persistence.",
+      "solution": "When writing tests for missing-state misclassification/poisoning, do not assert on the exact ValidationError string (it may be 'invalid gas used' instead of 'missing trie node'). Assert primarily on FCU/NewPayload statuses (must be SYNCING, not INVALID) and on absence of bad-block/invalid-cache poisoning.",
+      "timestamp": "2026-03-28T03:16:00.572944",
+      "related_files": [],
+      "error_pattern": "invalid gas used \\(remote: .* local: .*\\)"
+    },
+    {
+      "issue": "Implementing payloadId collision test across sibling heads requires distinct block hashes for siblings even with identical payloadAttributes; otherwise siblings could be identical and invalidate the precondition.",
+      "solution": "When building two sibling blocks A and B via testingAPI.BuildBlockV1 with identical PayloadAttributes, set different extraData bytes to force distinct block hashes while keeping timestamp/feeRecipient/random/etc constant.",
+      "timestamp": "2026-03-28T03:36:56.415168",
+      "related_files": [],
+      "error_pattern": "(?i)precondition failed: expected distinct sibling block hashes"
+    },
+    {
+      "issue": "Compilation error in catalyst test: used engine.Withdrawal type in PayloadAttributes.Withdrawals",
+      "solution": "Use core/types.Withdrawal (github.com/ethereum/go-ethereum/core/types) for PayloadAttributes.Withdrawals; engine.Withdrawal does not exist.",
+      "timestamp": "2026-03-28T04:06:52.061014",
+      "related_files": [],
+      "error_pattern": "undefined: engine\\.Withdrawal"
+    },
+    {
+      "issue": "When building a payload C1 on top of B1 using getNewPayload, if B1 was just built but not submitted/FCU'd, getNewPayload fails with 'missing parent' because it tries to look up the parent in the blockchain.",
+      "solution": "Submit B1 via NewPayloadV1 and update the forkchoice to B1 via ForkchoiceUpdatedV1 before trying to build C1 on top of it. This ensures B1 is in the blockchain and can be found as a parent.",
+      "timestamp": "2026-03-28T11:24:38.451831",
+      "related_files": [],
+      "error_pattern": "missing parent"
+    },
+    {
+      "issue": "When using assembleEnvelope to build a block, it requires the parent block to be the current head of the blockchain. If you try to build a block on an older block, it will fail with 'missing parent'.",
+      "solution": "To build blocks on an older block or a different fork, use a second node instance, sync it to the desired parent block, and use its API to build the new blocks.",
+      "timestamp": "2026-03-28T11:47:11.249589",
+      "related_files": [],
+      "error_pattern": "assembleEnvelope error: missing parent"
+    },
+    {
+      "issue": "Implementing terminal block finality confusion test requires complex setup with multiple PoW forks at TTD and multiple execution clients, which is difficult to achieve in unit tests due to: (1) getNewPayload/assembleEnvelope requiring parent to be current head, (2) blockhash mismatches when modifying payloads, (3) difficulty in creating proper PoW->PoS transition with forked terminal blocks",
+      "solution": "For complex multi-client terminal block scenarios, use integration tests instead of unit tests. Unit tests work best for single-client scenarios with simple post-merge chains. When testing terminal block validation, focus on simpler properties like basic finality acceptance rather than full cross-client terminal block confusion scenarios.",
+      "timestamp": "2026-03-28T13:54:49.253948",
+      "related_files": [],
+      "error_pattern": null
+    },
+    {
+      "issue": "Byzantine finality equivocation test revealed that go-ethereum's ForkchoiceUpdated handler does not validate that newly finalized blocks must be descendants of previously finalized blocks, allowing conflicting sibling blocks to be finalized sequentially",
+      "solution": "The test builds a chain with siblings C1 and C2 (both children of A3), finalizes C1 via ForkchoiceUpdated, then successfully finalizes C2 (sibling of C1) via another ForkchoiceUpdated call. The execution layer should reject the second finalization because C2 is not a descendant of C1. This violates the safety property that finalized blocks must form a monotonically increasing chain.",
+      "timestamp": "2026-03-28T14:03:55.807329",
+      "related_files": [],
+      "error_pattern": "finality.*equivocation|finalized.*sibling|finality.*monotonicity"
+    },
+    {
+      "issue": "Byzantine safe block equivocation test revealed that go-ethereum's ForkchoiceUpdated handler does not validate that safe blocks maintain consistency across conflicting forks. The execution layer accepts safe block updates that switch between sibling blocks at the same height on different forks.",
+      "solution": "The test builds a chain with two conflicting forks from A2: Fork1 (A2 -> B1 -> B2) and Fork2 (A2 -> C1 -> C2), where B1 and C1 are siblings (same height, different hashes). After marking B1 as safe via ForkchoiceUpdated(head=B2, safe=B1), the test successfully marks C1 as safe via ForkchoiceUpdated(head=C2, safe=C1). The execution layer should reject the second update because C1 is not a descendant of B1 (the previous safe block), but it accepts it. The test also demonstrates that the safe block oscillates between B1 and C1 during rapid fork switches, violating the safety invariant that safe blocks should maintain consistency.",
+      "timestamp": "2026-03-28T14:10:36.080637",
+      "related_files": [],
+      "error_pattern": "safe block equivocation|conflicting safe blocks"
+    },
+    {
+      "issue": "Byzantine head-finality anchoring violation test revealed that go-ethereum's ForkchoiceUpdated handler has two critical bugs: (1) When FCU returns an error, it still partially updates state by changing the head block, violating atomicity. (2) FCU allows finalizing a block that is not a descendant of the previously finalized block when the new head is on a conflicting fork.",
+      "solution": "The test builds two divergent forks from A2: main fork (A2->A3->A4->A5) and conflicting fork (A2->B1->B2->B3). After finalizing A3 with head at A5, attempting to set head to B3 (which diverged before A3) returns an error but still changes the head to B3. Then, attempting to finalize B3 succeeds even though B3 is not a descendant of A3. The execution layer should: (1) Not modify any state when FCU returns an error, (2) Reject finalization of blocks that are not descendants of the current finalized block.",
+      "timestamp": "2026-03-28T14:18:33.396309",
+      "related_files": [],
+      "error_pattern": "Invalid forkchoice state.*head was changed|accepted.*as finalized.*not a descendant"
+    },
+    {
+      "issue": "Byzantine finality height regression test revealed that go-ethereum's ForkchoiceUpdated handler does not validate that newly finalized blocks must have a height greater than or equal to the currently finalized block height. A Byzantine consensus client can send ForkchoiceUpdated messages that finalize blocks at lower heights than the current finalized block, causing a \"finality regression\" that violates the monotonicity property of finalization.",
+      "solution": "The test builds a chain Genesis -> A1 -> A2 -> A3 -> A4 -> A5 -> B1 -> B2 -> B3, finalizes A5 (height 6), then builds an alternative fork A3 -> C1 -> C2. When attempting to finalize A3 (height 4) via ForkchoiceUpdated(head=C2, safe=C1, finalized=A3), the execution layer accepts it and changes the finalized block from A5 (height 6) to A3 (height 4). This is a 2-block regression. The execution layer should reject ForkchoiceUpdated calls where the finalized block height is less than the current finalized block height to maintain the monotonicity invariant: finalizedBlockHeight(t2) >= finalizedBlockHeight(t1) for all times t2 > t1.",
+      "timestamp": "2026-03-28T14:25:46.705768",
+      "related_files": [],
+      "error_pattern": "finality.*height.*regress|finalized.*block.*height.*decreas"
+    },
+    {
+      "issue": "Byzantine finality cascade via alternating fork finalization test revealed that go-ethereum's ForkchoiceUpdated handler does not validate that newly finalized blocks must be descendants of previously finalized blocks when switching between conflicting forks. The execution layer accepts a sequence of ForkchoiceUpdated calls that finalize blocks in an alternating pattern across conflicting forks (Fork A and Fork B), resulting in a \"finalized chain\" that contains disconnected blocks from both forks.",
+      "solution": "The test builds two competing forks from a common ancestor F0: Fork A (F0->A1->A2->A3->A4->A5) and Fork B (F0->B1->B2->B3->B4->B5). After finalizing A1 (height 101), the test successfully finalizes B2 (height 102) on the conflicting fork, even though B2 is NOT a descendant of A1. The attack continues alternating between forks, finalizing A3, B4, and A5. The execution layer accepts all these finality updates, resulting in a finalized set that includes blocks from both conflicting forks: {F0, A1, B2, A3, B4, A5}. This violates the fundamental safety property that finalized blocks must form a valid chain where each block is a descendant of the previous finalized block. The test demonstrates three critical violations: (1) Individual finality updates that violate ancestry (e.g., B2 not descendant of A1), (2) Chain coherence violations where finalized blocks have parents that are not in the finalized set, (3) Cross-fork finalization where blocks from both conflicting forks are accepted as finalized. The execution layer should reject any ForkchoiceUpdated call where the finalized block is not a descendant of the current finalized block.",
+      "timestamp": "2026-03-28T14:31:47.376195",
+      "related_files": [],
+      "error_pattern": "CHAIN COHERENCE VIOLATION.*is in finalized set, but its parent.*is not"
+    },
+    {
+      "issue": "Byzantine safe-finalized fork divergence test revealed that go-ethereum's ForkchoiceUpdated handler does not validate that newly finalized blocks must be descendants of previously finalized blocks when switching between sibling forks. The execution layer accepts finalizing a block that is a sibling of the currently finalized block (both at the same height with the same parent).",
+      "solution": "The test builds a chain with two sibling blocks A3 and C1 (both children of A2). After finalizing A3 via ForkchoiceUpdated(head=B2, safe=B1, finalized=A3), the test successfully finalizes C1 (sibling of A3) via ForkchoiceUpdated(head=D1, safe=C2, finalized=C1). The execution layer should reject this because C1 is NOT a descendant of A3 - they are siblings at the same height. This violates the fundamental safety property that finalized blocks must form a monotonically increasing chain where each new finalized block is a descendant of the previous finalized block. The test demonstrates a finality reorg between siblings, which should never be allowed.",
+      "timestamp": "2026-03-28T14:37:14.297082",
+      "related_files": [],
+      "error_pattern": "finality reorg.*siblings"
+    },
+    {
+      "issue": "Byzantine safe block leap attack test revealed that go-ethereum's ForkchoiceUpdated handler does not validate that safe blocks progress monotonically through the canonical chain without gaps. A Byzantine consensus client can mark a block as safe without first marking all its ancestors as safe, causing the safe block to \"leap\" forward and skip intermediate blocks.",
+      "solution": "The test builds a canonical chain Genesis -> A1 -> A2 -> ... -> A10, sets safe block to A2, then successfully leaps the safe block to A8 (skipping A3-A7) via ForkchoiceUpdated(head=A10, safe=A8, finalized=A1). The execution layer accepts this leap without validating that intermediate blocks were ever marked safe. This allows building a conflicting fork from A4 that reorgs blocks A5-A7 which were never marked safe but should be protected if A8 is safe. The execution layer should enforce monotonic safe block progression by rejecting safe block updates that skip ancestors, or by automatically marking all ancestors as safe when a descendant is marked safe.",
+      "timestamp": "2026-03-28T14:45:07.543839",
+      "related_files": [],
+      "error_pattern": "ASSERTION FAILED: Safe block leap from .* to .* was accepted without validating intermediate blocks"
+    },
+    {
+      "issue": "Byzantine finalized block leap attack test revealed that go-ethereum's ForkchoiceUpdated handler does not validate that finalized blocks progress monotonically through the canonical chain without gaps. A Byzantine consensus client can mark a block as finalized without first finalizing all its ancestors, causing the finalized block to \"leap\" forward and skip intermediate blocks. This is more severe than safe block leaps because finalized blocks provide absolute immutability guarantees.",
+      "solution": "The test builds a canonical chain Genesis -> A1 -> A2 -> ... -> A12, sets finalized block to A2, then successfully leaps the finalized block to A9 (skipping A3-A8) via ForkchoiceUpdated(head=A12, safe=A10, finalized=A9). The execution layer accepts this leap without validating that intermediate blocks were ever finalized. This creates a \"finalized gap\" where blocks A3-A8 were never finalized but are now implicitly treated as immutable. The test then demonstrates that a conflicting fork can be built from A5 (in the gap) and the execution layer accepts switching to this fork, allowing a reorg that affects blocks A6-A9 even though A9 was marked as finalized. This violates the fundamental finality guarantee that finalized blocks can never be reorg'd. The execution layer should enforce monotonic finalized block progression by rejecting finalized block updates that skip ancestors, or by automatically marking all ancestors as finalized when a descendant is marked finalized.",
+      "timestamp": "2026-03-28T14:55:13.068900",
+      "related_files": [],
+      "error_pattern": "finalized block leap|finalized gap|reorg.*finalized"
+    },
+    {
+      "issue": "Byzantine safe block backward height movement test revealed that go-ethereum's ForkchoiceUpdated handler does not validate that safe block HEIGHT progresses monotonically. A Byzantine consensus client can move the safe block to a lower height during fork switches, violating the fundamental safety guarantee that safe blocks only advance.",
+      "solution": "The test builds a canonical chain Genesis -> A1 -> ... -> A15, sets safe block to A10 (height 11), then builds fork B from A5 with B7 at height 13. After switching to fork B and setting safe=B7 (height 13), the test successfully moves the safe block backward to B3 (height 9) via ForkchoiceUpdated(head=B7, safe=B3, finalized=A5). The execution layer accepts this backward height movement, changing the safe block height from 13 to 9 - a 4-block regression. This violates the monotonicity invariant: safe_block_height(t+1) >= safe_block_height(t). The execution layer should reject ForkchoiceUpdated calls where the safe block height is less than the current safe block height, even during fork switches. While the safe block hash can change during legitimate fork switches, the HEIGHT should never decrease as this would allow reorgs of blocks that were previously protected by a higher safe block.",
+      "timestamp": "2026-03-28T15:00:05.454419",
+      "related_files": [],
+      "error_pattern": "Safe block height moved BACKWARD.*MONOTONICITY VIOLATED"
+    },
+    {
+      "issue": "Byzantine safe block cross-fork inconsistency attack test revealed that go-ethereum's ForkchoiceUpdated handler CORRECTLY validates that the safe block must be an ancestor of the head block when switching between forks.",
+      "solution": "The test builds two competing forks: Fork A (Genesis -> A1 -> A2 -> A3 -> A4 -> A5) and Fork B (Genesis -> A1 -> B2 -> B3 -> B4 -> B5 -> B6). After establishing Fork A as canonical with safe=A3, the test attempts to switch to Fork B via ForkchoiceUpdated(head=B6, safe=A3, finalized=Genesis), where A3 is NOT an ancestor of B6 (they are on different forks). The execution layer correctly rejects this with error \"Invalid forkchoice state\" and status INVALID. This demonstrates that go-ethereum properly enforces the invariant that safe blocks must be ancestors of the current head, preventing cross-fork safe block inconsistencies. This is the correct and secure behavior - the protocol is working as intended.",
+      "timestamp": "2026-03-28T15:04:18.056740",
+      "related_files": [],
+      "error_pattern": "safe block cross-fork|safe block ancestry validation"
+    },
+    {
+      "issue": "Byzantine safe block leap with head regression test revealed that go-ethereum's ForkchoiceUpdated handler CORRECTLY validates that safe blocks must be ancestors of the head block, even after a safe block leap has occurred.",
+      "solution": "The test builds a canonical chain Genesis -> A1 -> ... -> A10, exploits the safe block leap vulnerability to advance safe from A2 to A8, then attempts to move the head backward to A5 via ForkchoiceUpdated(head=A5, safe=A8, finalized=A1). The execution layer correctly rejects this invalid state by not updating the head block - the head remains at A10 while safe remains at A8, maintaining the invariant safe ∈ ancestors(head). This demonstrates that while the safe block leap vulnerability exists (allowing safe to skip intermediate blocks), go-ethereum properly enforces the ancestor relationship between safe and head blocks, preventing the creation of an invalid state where safe is ahead of head on the same chain. The protocol correctly handles this attack scenario.",
+      "timestamp": "2026-03-28T15:09:26.955379",
+      "related_files": [],
+      "error_pattern": null
+    },
+    {
+      "issue": "Byzantine safe block orphaning through gap-region forking test revealed that go-ethereum's ForkchoiceUpdated handler allows a previously-marked safe block to become orphaned when a reorg forks from within a gap region created by a safe block leap.",
+      "solution": "The test builds a canonical chain Genesis -> A1 -> ... -> A10, sets safe block to A2, then successfully leaps the safe block to A8 (skipping A3-A7). It then builds a conflicting fork from A5 (which is in the gap region A3-A7 that was never marked safe): A5 -> B1 -> B2 -> B3 -> B4 -> B5 -> B6 -> B7. When the fork becomes longer and ForkchoiceUpdated(head=B7, safe=B6, finalized=A1) is sent, the execution layer accepts the reorg, causing A8 (the previously-safe block) to become orphaned. This demonstrates that the safe block leap vulnerability can be exploited to violate the safety guarantee that safe blocks should be immutable and protected from reorgs. The execution layer should either: (1) reject safe block leaps entirely, (2) automatically mark all ancestors as safe when a descendant is marked safe, or (3) reject reorgs that would orphan previously-safe blocks.",
+      "timestamp": "2026-03-28T15:15:16.073087",
+      "related_files": [],
+      "error_pattern": "safe block.*orphan.*gap.*fork"
+    },
+    {
+      "issue": "Byzantine finalized-safe block inversion attack test revealed that go-ethereum's ForkchoiceUpdated handler does not validate that the finalized block is an ancestor of (or equal to) the safe block. A Byzantine consensus client can create a semantically invalid state where finalized blocks are ahead of safe blocks on the canonical chain.",
+      "solution": "The test builds a canonical chain Genesis -> A1 -> ... -> A15, establishes initial valid state with finalized=A2 (height 3), safe=A5 (height 6), head=A10 (height 11), then successfully sends an inverted state via ForkchoiceUpdated(head=A15, safe=A5, finalized=A10) where finalized block height (11) > safe block height (6). The execution layer accepts this invalid state, violating the fundamental invariant that finalized ∈ ancestors(safe). This creates a semantically invalid state where finalized blocks are more recent than safe blocks, contradicting the progression model where finalized blocks should be more conservative (older) than safe blocks. The execution layer should reject ForkchoiceUpdated calls where the finalized block is not an ancestor of (or equal to) the safe block.",
+      "timestamp": "2026-03-28T15:22:46.010783",
+      "related_files": [],
+      "error_pattern": "finalized.*safe.*inversion|finalized.*ahead.*safe"
+    },
+    {
+      "issue": "Byzantine cross-fork pointer injection attack test revealed that go-ethereum's ForkchoiceUpdated handler CORRECTLY validates that finalized, safe, and head blocks must all belong to the same canonical chain (i.e., they form a valid ancestry path).",
+      "solution": "The test builds a canonical chain Genesis -> A1 -> A2 -> A3 -> A4 -> A5, then creates three incompatible forks from A2: Fork B (A2 -> B1 -> B2 -> B3 -> B4 -> B5), Fork C (A2 -> C1 -> C2 -> C3 -> C4 -> C5), and Fork D (A2 -> D1 -> D2 -> D3 -> D4 -> D5). After establishing initial valid state with head=A5, safe=A3, finalized=A1, the test attempts to send a cross-fork ForkchoiceUpdated with head=D5 (tip of fork D), safe=C3 (middle of fork C), and finalized=B2 (middle of fork B). The execution layer correctly rejects this with error \"Invalid forkchoice state\", demonstrating that go-ethereum properly enforces the invariant that finalized, safe, and head blocks must be on the same canonical chain. This prevents Byzantine consensus clients from creating internally inconsistent blockchain states where the execution layer simultaneously considers multiple conflicting chains as canonical. This is the correct and secure behavior - the protocol is working as intended.",
+      "timestamp": "2026-03-28T15:28:12.318241",
+      "related_files": [],
+      "error_pattern": null
+    },
+    {
+      "issue": "Byzantine finalized block rollback attack test revealed that go-ethereum's ForkchoiceUpdated handler does not enforce monotonicity of the finalized block pointer. A Byzantine consensus client can roll back the finalized block to an earlier height, violating the fundamental invariant that finality is irreversible.",
+      "solution": "The test builds a canonical chain Genesis -> A1 -> ... -> A20, establishes initial valid state with finalized=A10 (height 11), safe=A12 (height 13), head=A15 (height 16), then successfully sends a rollback via ForkchoiceUpdatedV1(head=A18, safe=A15, finalized=A5) where finalized block height moves BACKWARDS from 11 to 6. The execution layer accepts this temporal violation, allowing the finalized block pointer to decrease in height across consecutive ForkchoiceUpdated calls. This violates the monotonicity invariant: once a block is finalized at height H, all future finalized blocks must be at height >= H. The execution layer should reject ForkchoiceUpdated calls where the new finalized block height is less than the current finalized block height.",
+      "timestamp": "2026-03-28T15:31:26.969419",
+      "related_files": [],
+      "error_pattern": "finalized block height moved BACKWARDS"
+    }
+  ],
+  "notes": [
+    "go-ethereum uses ethash.NewFaker() as the standard consensus engine for tests (skips PoW)",
+    "Core test pattern: Genesis -> GenerateChain (with BlockGen callback) -> NewBlockChain -> InsertChain",
+    "Package core/types contains: Block, Header, Transaction, Receipt, Log, Withdrawal",
+    "Consensus engines implement consensus.Engine interface: VerifyHeader, CalcDifficulty, Finalize, Seal",
+    "Three consensus engines: ethash (PoW), beacon (PoS post-Merge), clique (PoA for testnets)",
+    "State transitions: StateProcessor.Process executes txs -> StateDB modified -> BlockValidator.ValidateState checks roots",
+    "Key forks affecting consensus: Homestead, Byzantium, Constantinople, Istanbul, London (EIP-1559), Paris (Merge), Shanghai, Cancun (EIP-4844)",
+    "EVM test helpers: vm.NewEVM creates an EVM instance, core.ApplyTransaction applies a single tx",
+    "Test accounts: use crypto.GenerateKey() and crypto.PubkeyToAddress(key.PublicKey) for deterministic test addresses",
+    "BlockGen callback methods: SetCoinbase, AddTx, AddUncle, AddWithdrawal, OffsetTime, TxNonce, PrevBlock",
+    "rawdb.NewMemoryDatabase() is the standard in-memory DB for tests (no disk persistence)",
+    "params.AllEthashProtocolChanges enables all forks with ethash consensus for testing"
+  ],
+  "build_command": null,
+  "test_command": null,
+  "test_timeout": null,
+  "file_hashes": {}
+}

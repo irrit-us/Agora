@@ -1,0 +1,167 @@
+{
+  "repo": "aptos-core",
+  "language": "rust",
+  "last_updated": "2025-12-10T04:37:37.449167",
+  "package_name": null,
+  "module_path": null,
+  "test_structure": {
+    "test_dirs": [],
+    "test_pattern": "*_test.go",
+    "main_test_files": [],
+    "test_framework": null
+  },
+  "coding_style": {
+    "naming_convention": "TestXxx",
+    "setup_pattern": null,
+    "teardown_pattern": null,
+    "assertion_style": null,
+    "common_imports": [],
+    "error_handling_style": null
+  },
+  "helper_functions": [],
+  "fault_injection": [],
+  "key_types": [],
+  "test_templates": {},
+  "setup_boilerplate": null,
+  "lessons_learned": [
+    {
+      "issue": "Rust module ambiguity when adding new tests under consensus/safety-rules",
+      "solution": "The crate originally used consensus/safety-rules/src/tests.rs as the root test module that declared its submodules (local, networking, etc.). Adding a new directory consensus/safety-rules/src/tests with its own mod.rs caused error E0761 because Rust found a module `tests` at both tests.rs and tests/mod.rs. The fix was to delete the new tests/mod.rs and instead place the additional `mod crash_window_rollback;` declaration directly into the existing tests.rs file, keeping a single root for the test modules.",
+      "timestamp": "2025-12-09T17:50:38.432548",
+      "related_files": [],
+      "error_pattern": "file for module `tests` found at both .*safety-rules/src/tests.rs\" and \".*safety-rules/src/tests/mod.rs\""
+    },
+    {
+      "issue": "New crash-amnesia double-vote test for SafetyRules initially failed because the implementation *does* allow a second vote in the same round when SafetyData is regressed across a simulated crash.",
+      "solution": "The failure is actually the intended outcome of the security test: it reveals that SafetyRules, as currently implemented, cannot detect a crash-window rollback of SafetyData (last_voted_round / last_vote) when storage is overwritten with stale state. The test logic and imports compiled and ran correctly on first attempt, so no code changes were required to fix compilation—only interpretation of the failing assertion as a potential protocol bug.",
+      "timestamp": "2025-12-09T18:22:13.232497",
+      "related_files": [],
+      "error_pattern": "crash_amnesia_double_vote_conflicting_proposals_rejected"
+    },
+    {
+      "issue": "Missing CryptoHash import when calling VoteData::hash() in new crash-window rollback safety test",
+      "solution": "Import aptos_crypto::hash::CryptoHash in the test module so that the CryptoHash trait is in scope, enabling vote_data.hash() to compile.",
+      "timestamp": "2025-12-09T18:52:04.200984",
+      "related_files": [],
+      "error_pattern": "no method named `hash` found for reference `&VoteData` in the current scope"
+    },
+    {
+      "issue": "Cargo test failed with OS error 28 (No space left on device) when compiling dependencies, unrelated to the added consensus test code.",
+      "solution": "Recognize that this is an environmental issue on the test runner (disk full) rather than a Rust code, compilation, or logic problem. The appropriate remediation is to free disk space or run the tests in a clean environment; no changes to the test source files are required.",
+      "timestamp": "2025-12-09T20:19:26.435338",
+      "related_files": [],
+      "error_pattern": "No space left on device \\(os error 28\\)"
+    },
+    {
+      "issue": "Attempted to make SafetyRules accept a vote for a2 after signing a timeout for a higher round, but the implementation intentionally enforces a monotonic last_voted_round, causing IncorrectLastVotedRound when trying to vote in a lower round.",
+      "solution": "Adjusted the multi-lock split liveness test to assert the actual implemented behavior: once SafetyRules signs a timeout for round r_t, its last_voted_round may advance to r_t, and any subsequent attempt to vote in a lower round must fail with Error::IncorrectLastVotedRound. The liveness property must therefore be tested on *future* higher-round proposals, not on earlier rounds.",
+      "timestamp": "2025-12-09T21:08:22.944825",
+      "related_files": [],
+      "error_pattern": "IncorrectLastVotedRound\\([0-9]+, [0-9]+\\) when trying to vote after signing timeout"
+    },
+    {
+      "issue": "Mis-referenced helper module path after adding new round_manager test file, causing E0432 unresolved import for crate::round_manager_tests in forged_timeout_qc_test.rs.",
+      "solution": "Do not re-declare or re-export the test helper module under a new top-level path. Keep using the existing `round_manager::round_manager_tests` module path. When adding a new test file, only add `mod your_test;` inside `consensus/src/round_manager_tests/mod.rs` without changing public visibility or moving helpers. If other tests import helpers, update their `use` paths to `round_manager::round_manager_tests::...` instead of `crate::round_manager_tests`.",
+      "timestamp": "2025-12-10T01:27:59.204322",
+      "related_files": [],
+      "error_pattern": "unresolved import `crate::round_manager_tests`"
+    },
+    {
+      "issue": "Tried to run a specific Rust test in the aptos-safety-rules crate using the --test target name, but tests are organized as a single integration test binary named 'safety_rules' with many #[test] functions inside, so targeting by test function name must be done via -p <crate> and the test function filter, not --test.",
+      "solution": "Use `cargo test -p aptos-safety-rules <test_name_filter>` to run a specific SafetyRules unit test by name. The `--test safety_rules` target is not valid because aptos-safety-rules only defines a bench target and internal unit tests, not an integration test binary named safety_rules.",
+      "timestamp": "2025-12-10T02:10:50.193994",
+      "related_files": [],
+      "error_pattern": "no test target named `safety_rules` in default-run packages"
+    },
+    {
+      "issue": "When adding a new SafetyRules test that uses trait methods like initialize and construct_and_sign_vote_two_chain on SafetyRules, compilation failed because these methods are provided by the TSafetyRules trait and the trait was not in scope.",
+      "solution": "Import the TSafetyRules trait in the test module (e.g., `use crate::{test_utils, SafetyRules, TSafetyRules};`) so that the extension methods from the trait are available on SafetyRules in the tests.",
+      "timestamp": "2025-12-10T02:16:14.227912",
+      "related_files": [],
+      "error_pattern": "no method named `construct_and_sign_vote_two_chain` found for struct `SafetyRules` in the current scope"
+    },
+    {
+      "issue": "Crash-recovered lock regression tests for conflicting 3-chain behavior in SafetyRules are failing, indicating that current SafetyRules implementation allows a post-crash vote on a conflicting branch after a higher-round vote on another branch.",
+      "solution": "Confirmed by running `cargo test -p aptos-safety-rules crash_recovered_lock_regression_conflicting_3chain -- --nocapture` that both tests in consensus/safety-rules/src/tests/crash_recovered_lock_regression_conflicting_3chain.rs fail due to SafetyRules constructing a post-crash vote on a conflicting branch. No changes to test code were made; the failures represent a real safety vulnerability under crash-recovery with stale SafetyData, where SafetyRules does not prevent conflicting votes across crash boundaries.",
+      "timestamp": "2025-12-10T02:23:32.865527",
+      "related_files": [],
+      "error_pattern": "crash_recovered_lock_regression_conflicting_3chain.*panicked"
+    },
+    {
+      "issue": "Tried to run cargo test from a non-repo root path (aptos-core) in the tool environment, but the working directory is already the repository root so the subdirectory does not exist.",
+      "solution": "When using run_command for tests in this environment, invoke cargo from the current directory (which is already the repository root) without prepending an extra repo directory. For example, use `cargo test -p aptos-safety-rules <test_name> -- --nocapture` instead of `cd aptos-core && cargo test ...`.",
+      "timestamp": "2025-12-10T03:13:00.271514",
+      "related_files": [],
+      "error_pattern": "cd: aptos-core: No such file or directory"
+    },
+    {
+      "issue": "Added new SafetyRules tests for timeout-crash lock amnesia scenario and saw they failed at runtime, not due to compilation or import problems.",
+      "solution": "The failures are intentional: the new tests are structured like other crash/timeout regression tests in aptos-safety-rules and assert that current SafetyRules implementation is vulnerable. No changes to fix tests are needed; the panics represent real safety violations under crash + timeout with stale SafetyData.",
+      "timestamp": "2025-12-10T03:22:49.735459",
+      "related_files": [],
+      "error_pattern": "timeout_crash_lock_amnesia_.*"
+    },
+    {
+      "issue": "New SafetyRules regression test crash_induced_vote_amnesia_conflicting_qcs_same_round failed with a panic indicating double-vote after crash-induced vote amnesia.",
+      "solution": "The failure is intentional: the test is structured like other crash/persistence regression tests in consensus/safety-rules and demonstrates a real safety violation. No changes to the test are required; the panic message documents that SafetyRules currently allows a post-crash second vote in the same round on a conflicting block, enabling conflicting QCs.",
+      "timestamp": "2025-12-10T03:32:48.507503",
+      "related_files": [],
+      "error_pattern": "crash_induced_vote_amnesia_conflicting_qcs_same_round"
+    },
+    {
+      "issue": "Added a new Rust test file qc_parent_mismatch_replay_test.rs under consensus/consensus-types/src expecting it to be picked up by cargo test -p aptos-consensus-types, but no tests were discovered or run.",
+      "solution": "Unlike other subcrates that use #[cfg(test)] modules pointing to separate *_test.rs files, aptos-consensus-types exposes its tests either as inline #[cfg(test)] modules or #[test] functions inside existing modules. Standalone top-level *_test.rs files are not automatically wired into lib.rs. To add a new unit test, place it inside an existing module (e.g., block_test.rs) or a #[cfg(test)] mod tests block referenced from lib.rs, rather than as a free-standing file not referenced from lib.rs.",
+      "timestamp": "2025-12-10T03:41:46.618181",
+      "related_files": [],
+      "error_pattern": "running 0 tests\\s+test result: ok\\. 0 passed; 0 failed; 0 ignored; 0 measured; \\d+ filtered out;"
+    },
+    {
+      "issue": "Added a new Rust test file qc_parent_mismatch_replay_test.rs directly under consensus/consensus-types/src with #[test] functions, but cargo test -p aptos-consensus-types still reports only the original 17 tests and does not run the new test.",
+      "solution": "In this repository, aptos-consensus-types uses only inline #[cfg(test)] modules and #[test]s inside existing modules like block.rs, block_data.rs, etc. Standalone top-level *.rs files in src/ are treated as modules, but since they are not referenced from lib.rs with a `pub mod` or `mod` statement, the compiler does not compile them and their tests are never discovered. To add tests, either place them inside an existing #[cfg(test)] mod tests in an existing module (e.g., within proposal_msg.rs or block.rs) or add a #[cfg(test)] mod qc_parent_mismatch_replay_test; declaration in lib.rs or some module that re-exports the new test module.",
+      "timestamp": "2025-12-10T03:42:41.226124",
+      "related_files": [],
+      "error_pattern": "running 0 tests\\s+test result: ok\\. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out;"
+    },
+    {
+      "issue": "New SafetyRules regression test crash_induced_lock_amnesia_cannot_enable_conflicting_commits fails by panicking, not due to compilation or import errors. The failure indicates SafetyRules currently allows a validator to vote for a conflicting 3-chain head after a crash with regressed SafetyData (lock amnesia), enabling conflicting QCs and potential conflicting commits.",
+      "solution": "This is an intentional regression/safety test structured like other crash/persistence tests under consensus/safety-rules/src/tests. The panic documents a real safety violation under crash-induced lock amnesia. No fix to the test is required; the failure highlights a protocol bug in the current SafetyRules implementation.",
+      "timestamp": "2025-12-10T03:52:05.687838",
+      "related_files": [],
+      "error_pattern": "crash_lock_amnesia_conflicting_hotstuff_commits::crash_induced_lock_amnesia_cannot_enable_conflicting_commits"
+    },
+    {
+      "issue": "Attempted to use non-existent helper methods and traits when crafting SafetyRules regression tests (LedgerInfo::set_next_epoch_state and ValidatorVerifier::clone), causing E0599 compilation errors.",
+      "solution": "Checked the actual type APIs under types/src. LedgerInfo has no mutator for next_epoch_state; that field is part of BlockInfo and is only set when constructing BlockInfo / LedgerInfo via existing helpers. ValidatorVerifier is not Clone; instead of calling clone(), construct EpochState with ValidatorVerifier by value (EpochState::new or manually) and avoid unnecessary cloning. In tests, rely on the EpochChangeProof returned by test_utils::make_genesis without trying to patch next_epoch_state in-place.",
+      "timestamp": "2025-12-10T04:07:15.210125",
+      "related_files": [],
+      "error_pattern": "no method named `set_next_epoch_state` found for struct `LedgerInfo`|no method named `clone` found for struct `ValidatorVerifier`"
+    },
+    {
+      "issue": "Needed to add a new crash/epoch-boundary regression test under aptos-safety-rules and ensure it is compiled and run by cargo test",
+      "solution": "Followed existing pattern in consensus/safety-rules/src/tests: created a new *_regression_test.rs-style file (here epoch_boundary_crash_lock_reset_conflicting_cross_epoch_commits.rs) inside consensus/safety-rules/src/tests, then referenced it from consensus/safety-rules/src/tests.rs via a `mod` declaration. Used existing helpers like test_utils::make_genesis and make_proposal_with_parent_and_overrides, and modeled the test on prior crash_* regression tests that construct SafetyRules directly with custom SafetyData and EpochState. Finally, ran `cargo test -p aptos-safety-rules <test_name>` to confirm it is discovered and passes.",
+      "timestamp": "2025-12-10T04:30:28.138062",
+      "related_files": [],
+      "error_pattern": ".*unresolved import .*test_utils.* or test module not found when adding new SafetyRules regression tests.*"
+    },
+    {
+      "issue": "How to add a new SafetyRules regression test exercising concurrent threaded SafetyRules behavior",
+      "solution": "Place the new regression test as a separate Rust file under consensus/safety-rules/src/tests (e.g., concurrent_proposal_double_vote_regression.rs) and reference it from consensus/safety-rules/src/tests.rs via a `mod` declaration. Use existing helpers such as test_utils::make_genesis and SafetyRulesManager::new_thread, and follow patterns from other tests (crash_* and timeout_* files) for structuring local safety assertions and, if needed, embedding votes into synthetic multi-validator QCs. Then run `cargo test -p aptos-safety-rules <test_name>` to ensure it compiles and is discovered.",
+      "timestamp": "2025-12-10T04:37:37.449150",
+      "related_files": [],
+      "error_pattern": null
+    }
+  ],
+  "notes": [
+    "Aptos uses a variant of HotStuff BFT consensus",
+    "Twins testing framework allows Byzantine behavior simulation",
+    "QuorumStore manages batching and proof of availability",
+    "Safety rules are isolated in separate crate for security",
+    "Smoke tests in testsuite/ provide end-to-end validation",
+    "Use mock_* helpers from test_utils for unit testing",
+    "Large monorepo - use -p flag to test specific packages"
+  ],
+  "build_command": null,
+  "test_command": null,
+  "test_timeout": null,
+  "file_hashes": {}
+}

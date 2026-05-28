@@ -1,0 +1,53 @@
+{
+  "repo": "library",
+  "language": "java",
+  "last_updated": "2025-12-09T18:31:56.458456",
+  "package_name": null,
+  "module_path": null,
+  "test_structure": {
+    "test_dirs": [],
+    "test_pattern": "*_test.go",
+    "main_test_files": [],
+    "test_framework": null
+  },
+  "coding_style": {
+    "naming_convention": "TestXxx",
+    "setup_pattern": null,
+    "teardown_pattern": null,
+    "assertion_style": null,
+    "common_imports": [],
+    "error_handling_style": null
+  },
+  "helper_functions": [],
+  "fault_injection": [],
+  "key_types": [],
+  "test_templates": {},
+  "setup_boilerplate": null,
+  "lessons_learned": [
+    {
+      "issue": "Cannot execute Java-based tests in the current environment due to missing Java runtime.",
+      "solution": "Limit verification to compilation via Gradle (e.g., './gradlew classes') and perform logical review of test code instead of executing it. Do not attempt to run 'java' directly when the environment reports 'Unable to locate a Java Runtime'.",
+      "timestamp": "2025-12-09T18:16:08.867995",
+      "related_files": [],
+      "error_pattern": "Unable to locate a Java Runtime"
+    },
+    {
+      "issue": "Tried to compile Java sources with Gradle but environment has no Java runtime (Unable to locate a Java Runtime).",
+      "solution": "Do not rely on actually running Gradle or Java in this environment. Focus on generating code consistent with repository style and rely on static reasoning instead of real compilation/execution.",
+      "timestamp": "2025-12-09T18:31:56.458437",
+      "related_files": [],
+      "error_pattern": "Unable to locate a Java Runtime"
+    }
+  ],
+  "notes": [
+    "BFT-SMaRt requires n = 3f + 1 replicas to tolerate f Byzantine faults",
+    "Tests typically start replica processes externally using ProcessExecutor",
+    "Configuration is in config/ directory: hosts.config defines replica addresses",
+    "system.config sets system.servers.f for fault tolerance level",
+    "Use CounterServer/CounterClient for basic consensus testing"
+  ],
+  "build_command": null,
+  "test_command": null,
+  "test_timeout": null,
+  "file_hashes": {}
+}

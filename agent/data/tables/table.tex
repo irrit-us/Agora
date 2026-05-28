@@ -1,0 +1,22 @@
+
+\begin{table}[t]
+    \centering
+    \caption{Ablation Study}
+    \label{tab:ablation_study}
+    \scalebox{0.85}{
+    \begin{tabular}{lccccc}
+        \toprule
+        \textbf{Configuration}
+        & \textbf{Raft} & \textbf{EPaxos} & \textbf{HotStuff} & \textbf{Sui}
+        & \textbf{Total} \\
+        \midrule
+        Full (\consensustester) & 1 & 9 & 4 & 1 & 15 \\
+        w/o bug-explo & 0 & 0 & 3 & 0 & 3 \\
+        w/o state-anal & 0 & 0 & 0 & 0 & 0 \\
+        w/o constraints-ana & 1 & 1 & 0 & 0 & 2 \\
+        w/o scena-gen & 0 & 0 & 0 & 0 & 0 \\
+        w/o reflect-loop & 0 & 0 & 0 & 0 & 0 \\
+        \bottomrule
+    \end{tabular}
+    }
+\end{table}

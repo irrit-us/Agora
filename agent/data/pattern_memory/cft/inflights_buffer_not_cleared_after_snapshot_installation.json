@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Inflights Buffer Not Cleared After Snapshot Installation",
+  "protocol_type": "cft",
+  "description": "When a leader sends a snapshot to a follower while having unacknowledged AppendEntries messages in the Inflights buffer, the Inflights buffer may not be properly cleared after the follower installs the snapshot and responds. This causes stale entries to remain in the Inflights buffer, reducing the available flow control window and potentially causing liveness issues.\n\nThe bug manifests as follows:\n1. Leader has follower in StateReplicate with full or partially-full Inflights buffer\n2. Leader's log gets compacted, requiring a snapshot to be sent to the follower\n3. Leader sends MsgSnapshot and transitions follower to StateSnapshot (Inflights cleared at this point)\n4. Follower installs snapshot and sends MsgAppResp\n5. Leader receives MsgAppResp and transitions follower back to StateReplicate\n6. BUG: Inflights buffer is not empty - it contains stale entries that should have been cleared\n\nImpact:\n- Reduces available flow control window (e.g., with MaxInflight=2 and 1 stale entry, only 1 new entry can be sent)\n- Can cause complete replication stall if MaxInflight=1 and buffer remains full\n- Degrades replication performance even in non-stall cases\n\nTesting approach:\n1. Set MaxInflightMsgs to a small value (e.g., 2)\n2. Put follower in StateReplicate (call pr.BecomeReplicate())\n3. Send entries to fill Inflights buffer, but don't deliver to follower\n4. Compact leader's log and trigger snapshot sending\n5. Deliver snapshot to follower and get response\n6. Assert that pr.Inflights.Count() == 0 after snapshot installation\n7. Verify leader can send new entries without flow control blocking",
+  "fault_type": "snapshot_installation",
+  "bug_category": "liveness",
+  "trigger_condition": "Leader sends snapshot to follower while Inflights buffer contains unacknowledged entries from before log compaction",
+  "test_template": "\n1. Setup: Create cluster with small MaxInflightMsgs (e.g., 2)\n2. Force follower into StateReplicate mode\n3. Send entries to fill Inflights, drop messages to follower\n4. Compact leader log and trigger snapshot\n5. Deliver snapshot to follower\n6. Check: Assert Inflights.Count() == 0 after snapshot response\n7. Verify: Leader can send new entries without blocking\n",
+  "discovered_in_repo": "raft",
+  "discovery_date": "2026-01-25T10:21:58.128099",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

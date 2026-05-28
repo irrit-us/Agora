@@ -1,0 +1,154 @@
+{
+  "repo": "hashicorp-raft",
+  "language": "go",
+  "last_updated": "2025-12-10T04:31:00.354749",
+  "package_name": null,
+  "module_path": null,
+  "test_structure": {
+    "test_dirs": [],
+    "test_pattern": "*_test.go",
+    "main_test_files": [],
+    "test_framework": null
+  },
+  "coding_style": {
+    "naming_convention": "TestXxx",
+    "setup_pattern": null,
+    "teardown_pattern": null,
+    "assertion_style": null,
+    "common_imports": [],
+    "error_handling_style": null
+  },
+  "helper_functions": [
+    {
+      "name": "MakeCluster",
+      "file": "raft_test.go",
+      "purpose": "Creates a test cluster of Raft nodes with configurable size and settings",
+      "signature": "func MakeCluster(n int, t *testing.T, conf *Config) *raftCluster",
+      "parameters": [],
+      "usage_example": "c := MakeCluster(3, t, conf)\nleader := c.Leader()\nfollowers := c.Followers()\ndefer c.Close()",
+      "returns": "*raftCluster that exposes methods like Leader(), Followers(), WaitForReplication(n), Partition(addrs), FullyConnect(), Disconnect(addr), EnsureLeader(t, addr), getConfiguration(r), IndexOf(r), etc."
+    }
+  ],
+  "fault_injection": [],
+  "key_types": [],
+  "test_templates": {},
+  "setup_boilerplate": null,
+  "lessons_learned": [
+    {
+      "issue": "Broken consensus_bug_test.go contained an unfinished Markdown code block which caused a Go parse error",
+      "solution": "Replaced consensus_bug_test.go contents with a minimal placeholder test file that only declares the package and a comment, removing the stray Markdown fence and incomplete code",
+      "timestamp": "2025-12-09T17:34:20.695176",
+      "related_files": [],
+      "error_pattern": "consensus_bug_test.go:.*expected declaration, found"
+    },
+    {
+      "issue": "Go compiler error due to an unused variable in new test file",
+      "solution": "Remove or use the unused variable (here, the configuration change future) so that the test compiles. In this case we dropped the assigned variable and ignored the return future since the test does not need it.",
+      "timestamp": "2025-12-09T17:34:56.044845",
+      "related_files": [],
+      "error_pattern": "snapshot_confused_config_test.go:.*declared and not used"
+    },
+    {
+      "issue": "When adding a standalone node created with MakeClusterNoBootstrap into another cluster via AddVoter/AddNonvoter, its own Raft instance must first be bootstrapped with a self-configuration; otherwise GetConfiguration on that node returns an empty configuration and equality checks fail",
+      "solution": "Before using nodes from MakeClusterNoBootstrap as joiners to an existing cluster, explicitly build a Configuration from their local ID/address and call BootstrapCluster on one of their Raft instances, mirroring the existing TestRaft_LiveBootstrap pattern",
+      "timestamp": "2025-12-09T17:39:11.636593",
+      "related_files": [],
+      "error_pattern": null
+    },
+    {
+      "issue": "Incorrect assumption that all connected nodes share the same configuration immediately after a series of RemoveServer operations in a new test, leading to assertion failure when some nodes have an extra server that has not yet been removed",
+      "solution": "Relax the configuration equality assertion in the new test: instead of requiring all connected nodes to have exactly the same configuration immediately, rely on the snapshot metadata (from the leader) later in the test as the source of truth. Remove the early strict configuration equality check, or only use the leader's configuration as committed C1, without asserting equality across all nodes at that moment.",
+      "timestamp": "2025-12-09T17:58:19.003335",
+      "related_files": [],
+      "error_pattern": "connected nodes must agree on configuration"
+    },
+    {
+      "issue": "Snapshot-driven divergence test assumed leader's FirstIndex would advance past 1 after explicit Snapshot(), causing assertion failure when compaction threshold/timing didn't guarantee that",
+      "solution": "Removed overly strict assertion that leader.logs.FirstIndex() > 1 and instead only required that a snapshot exists and later waited for the victim to install a snapshot with index >= leader's snapshot. This keeps the test robust to compaction details while still ensuring InstallSnapshot is used.",
+      "timestamp": "2025-12-09T18:19:19.642768",
+      "related_files": [],
+      "error_pattern": "leader log should be compacted past index 1"
+    },
+    {
+      "issue": "Go linker reported 'mapping output file failed: no space left on device' when running go test due to temporary build artifacts filling the filesystem",
+      "solution": "Recognize this as an environmental issue rather than a test code bug. Clean Go build/test cache or free disk space (e.g., `go clean -testcache`, remove old temp directories, or increase available disk) before re-running tests. Do not modify repository code in response to this error.",
+      "timestamp": "2025-12-09T19:29:02.916682",
+      "related_files": [],
+      "error_pattern": "no space left on device"
+    },
+    {
+      "issue": "Monotonic lastApplied assertion can fail across follower restart because restart restores from most recent on-disk snapshot, whose index may be lower than the follower's in-memory lastApplied before crash/restart.",
+      "solution": "Relax the monotonicity assertion in the restart-based approximation of the late snapshot overwrite attack. Instead of requiring lastApplied_after >= lastApplied_before, only assert that after restart and quiescence: (1) the follower's FSM still reflects the committed marker entry X, and (2) the follower's commitIndex/lastApplied do not regress below k (the index of X). This matches the safety property we care about (no loss of committed side effects) without over-constraining transient indices across restart.",
+      "timestamp": "2025-12-09T20:32:00.423625",
+      "related_files": [],
+      "error_pattern": "lastApplied after restart .* must be >= before"
+    },
+    {
+      "issue": "Durability-gap leader crash test timed out waiting for a leader in a specific partition ({A,C}) after restart",
+      "solution": "The test originally partitioned B away after restarting A and then asserted that a leader must be elected among {A,C}. In practice the pre-vote/election timing plus the Partition helper semantics made it possible to have repeated elections without stabilizing a single leader in that subset, causing a test timeout. The fix was to simplify the scenario: after truncating A's log and restarting it, fully reconnect the cluster and let the normal c.Leader() helper choose the eventual leader. The attack does not depend on which node wins the new term, only that the final leader's log lacks cmd1, so we no longer over-constrain leader identity or partition shape.",
+      "timestamp": "2025-12-09T21:11:09.931791",
+      "related_files": [],
+      "error_pattern": "expected a leader to be elected among \\{A,C\\} after restart"
+    },
+    {
+      "issue": "Missing io import in new commit_only_barrier_stale_read_test.go file caused undefined: io compilation error",
+      "solution": "Add \"io\" to the import list at the top of commit_only_barrier_stale_read_test.go so that the slowFSM.Restore method can reference io.ReadCloser.",
+      "timestamp": "2025-12-10T01:10:34.125602",
+      "related_files": [],
+      "error_pattern": "undefined: io in commit_only_barrier_stale_read_test.go"
+    },
+    {
+      "issue": "Forced follower snapshot in config-regression election-stall test failed because HashiCorp Raft forbids taking a snapshot until the configuration entry being snapshotted has been applied (error: cannot take snapshot now, wait until the configuration entry at X has been applied (have applied Y))",
+      "solution": "Do not treat Snapshot() errors as fatal when orchestrating adversarial timing; specifically, allow ErrNothingNewToSnapshot and also the configuration-application guard error. For this test we only require that C have a snapshot whose index is >= the leader’s earlier snapshot and that C’s log contains the configuration-change entry on disk. The precise lastIncludedIndex and configuration of C’s snapshot are not critical. Adjust the test to tolerate Snapshot() returning this guard error by not failing and continuing with the restart/restore steps.",
+      "timestamp": "2025-12-10T02:23:31.861932",
+      "related_files": [],
+      "error_pattern": "cannot take snapshot now, wait until the configuration entry at [0-9]+ has been applied"
+    },
+    {
+      "issue": "Crash-time vote persistence race test shows victim grants a second vote in same term after simulated crash-torn vote state",
+      "solution": "Implemented TestCrashTimeVotePersistenceRaceDoesNotLeadToDualLeadersSameTerm which closely mirrors existing TestCrashInterruptedVotePersistenceSplitBrain but in a 5-node setting and with additional leader-uniqueness and log-conflict checks. The failing assertion at the first double-vote check confirms that, under a state where currentTerm is durably T but lastVoteTerm<T due to a crash between setCurrentTerm and persistVote, the RequestVote handler will grant a fresh vote for the same term T to a different candidate. This is expected given the current implementation and validates the attack hypothesis; no further code changes to the test are necessary.",
+      "timestamp": "2025-12-10T03:01:05.972343",
+      "related_files": [],
+      "error_pattern": "victim granted a second vote in term .* after crash-torn vote state"
+    },
+    {
+      "issue": "Go compiler errors due to unused local variables in new Raft timing/liveness test",
+      "solution": "Remove or use any local variables introduced only for documentation or debugging. In stuck_leadership_transfer_no_leader_test.go the LeadershipTransfer future and tracking variable lastTerm were never referenced, so deleting them resolved the build failure.",
+      "timestamp": "2025-12-10T03:43:49.377482",
+      "related_files": [],
+      "error_pattern": ".*stuck_leadership_transfer_no_leader_test.go:.*declared and not used.*"
+    },
+    {
+      "issue": "New adversarial membership test for sequential configuration changes failed to compile due to unused local variables holding RemoveServer future indexes",
+      "solution": "Go build reported `declared and not used` for variables capturing the Index() of RemoveServer futures that were never used in assertions. Fixed by either using the indexes in subsequent checks, or if only needed for documentation, assigning the result to `_ = future.Index()` so there is no unused variable while still making the side effect explicit.",
+      "timestamp": "2025-12-10T03:59:07.416780",
+      "related_files": [],
+      "error_pattern": "declared and not used: .*Index"
+    },
+    {
+      "issue": "New test used cluster.Leader() right after partitioning that removed the original leader, causing GetInState(Leader) to time out and return zero leaders in a permanently split network",
+      "solution": "Avoid calling c.Leader() in a configuration that might have no current leader due to a network partition; instead, wait for election on the intended partition by manipulating transports explicitly or relaxing the partition so that at least one majority component exists. In this case, after partitioning out the original leader, ensure {B,C} are fully connected and that A is completely disconnected, then call c.GetInState(Leader) or poll each raft's State() until exactly one leader in {B,C} is present.",
+      "timestamp": "2025-12-10T04:16:13.371876",
+      "related_files": [],
+      "error_pattern": "expected one leader: \\[\\]"
+    },
+    {
+      "issue": "New snapshot_joint_consensus_amnesia_dual_majorities_test.go failed to compile due to undefined identifier 'l' in termCounts initialisation loop",
+      "solution": "In the leader-uniqueness postcondition we accidentally wrote 'l = &termLeaders{}' instead of using the correctly named local variable 'tl'. Fix by replacing 'l = &termLeaders{}' with 'tl = &termLeaders{}' when initialising the map entry, and ensure termCounts[term] is set to 'tl'.",
+      "timestamp": "2025-12-10T04:31:00.354731",
+      "related_files": [],
+      "error_pattern": "undefined: l"
+    }
+  ],
+  "notes": [
+    "RaftState: Follower=0, Candidate=1, Leader=2, Shutdown=3",
+    "Use Bootstrap() for initial cluster formation",
+    "Futures have Error() method to check for errors",
+    "LeaderCh() is buffered(1), may not capture all transitions",
+    "Configuration changes require leader"
+  ],
+  "build_command": null,
+  "test_command": null,
+  "test_timeout": null,
+  "file_hashes": {}
+}

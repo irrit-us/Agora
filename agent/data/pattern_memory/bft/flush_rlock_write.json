@@ -1,0 +1,28 @@
+{
+  "tags": [
+    "bug_pattern",
+    "race_condition",
+    "bft",
+    "cometbft",
+    "mempool",
+    "lock_misuse",
+    "rlock",
+    "code_audit"
+  ],
+  "context": {
+    "issue_url": "https://github.com/cometbft/cometbft/issues/2443",
+    "bug_category": "race_condition",
+    "pattern_type": "rlock_write_misuse",
+    "source_number": 2443,
+    "is_pr": false
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-04T17:45:00",
+  "embedded": false,
+  "pattern_id": "Mempool Flush uses read-lock while performing write operations causing data race",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Mempool Flush() uses read-lock (RLock) while performing write/mutating operations. DESCRIPTION: Code audit discovered that CListMempool.Flush() acquires a read-lock (RLock) but then performs write operations including removeTx() which mutates the data structure. Multiple goroutines can hold a read-lock simultaneously, so concurrent Flush() calls can corrupt data. This bug also indicates insufficient testing - a proper test suite with race detector would have caught this. ROOT CAUSE: Developer confusion between read and write operations, or copy-paste error. RLock allows concurrent access assuming no mutations, but Flush() clearly mutates state. The naming 'Flush' suggests clearing/writing, yet it uses a read-lock. LESSON: Lock usage patterns to verify: 1) RLock should ONLY be used for pure read operations with no side effects; 2) Any method that calls mutating helpers must use write lock; 3) Method names like Flush, Clear, Remove, Update are red flags for read-lock usage; 4) Code audits should specifically check lock type vs operation type; 5) Run race detector on ALL code paths, not just common ones - Flush may be rarely called making races hard to reproduce."
+}

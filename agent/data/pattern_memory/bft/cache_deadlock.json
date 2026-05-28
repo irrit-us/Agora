@@ -1,0 +1,23 @@
+{
+  "tags": [
+    "bug_pattern",
+    "deadlock",
+    "channel",
+    "goroutine",
+    "notification_loss",
+    "hotstuff",
+    "concurrency"
+  ],
+  "context": {
+    "issue_url": "https://github.com/relab/hotstuff/issues/240",
+    "pr_url": "https://github.com/relab/hotstuff/pull/248",
+    "bug_category": "deadlock",
+    "pattern_type": "channel_notification_loss",
+    "confirmed_by": "member (meling)",
+    "problematic_pattern": "unbuffered channel + select-default non-blocking send",
+    "fix_approach": "use buffered channel (size 1)"
+  },
+  "pattern_id": "Unbuffered channel notification loss causing deadlock in producer-consumer patterns",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Unbuffered Channel Notification Loss Deadlock. DESCRIPTION: CommandCache.Get() deadlocks when concurrent Add()/Get() operations occur due to notification loss. ROOT CAUSE: The cache used unbuffered channel with non-blocking send pattern: 'select { case c.c <- struct{}{}: default: }'. When Add() tries to send notification but no receiver is waiting, the notification is dropped (enters default case). Subsequent Get() waits forever for a notification that was already lost. SCENARIO: (1) Get() waits for commands, (2) Add() sends notification, (3) Get() receives and processes, (4) Add() adds more reaching batchSize, (5) Add() tries to notify but channel has no receiver, (6) Notification dropped, (7) Next Get() blocks forever. FIX: Use buffered channel (size 1) instead of unbuffered channel to ensure at least one notification can be queued even when no receiver is ready. LESSON: When using channels for notifications in producer-consumer patterns, prefer buffered channels (size 1) over unbuffered channels with non-blocking sends. The 'select-default' pattern for non-blocking sends can silently lose notifications, causing deadlocks. Always ensure notification delivery is guaranteed or use alternative synchronization primitives."
+}

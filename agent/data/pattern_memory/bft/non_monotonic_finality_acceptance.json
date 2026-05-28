@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Non-Monotonic Finality Acceptance",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern occurs in consensus protocols with separated consensus and execution layers (or similar modular architectures) where the execution layer accepts state finality markers without validating that they maintain critical chain invariants. Specifically, the execution layer fails to enforce that:",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "Consensus layer (or Byzantine actor controlling it) sends finality updates that violate chain ancestry or monotonicity invariants, while execution layer validates updates in isolation without checking consistency with previous finalized state.",
+  "test_template": "```",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T14:32:53.894010",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 3691797,
+    "api_cost": 12.509211
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

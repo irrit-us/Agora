@@ -1,0 +1,19 @@
+{
+  "pattern_id": "GhostExecution_PrematureApply",
+  "protocol_type": "cft",
+  "description": "This pattern targets the boundary between the consensus layer and the application layer. It exploits implementations that prioritize execution speed over durability (Optimistic Execution). In State Machine Replication, the Log is the source of truth. If a node allows the State Machine to transition ($S_0 \\rightarrow S_1$) based on a log entry $L_i$ that has not yet been persisted, a crash resets the Log to $L_{i-1}$ while the State remains at $S_1$. Subsequent recovery will diverge if the cluster decides on a different value for $L_i$.",
+  "fault_type": "crash_recovery",
+  "bug_category": "safety",
+  "trigger_condition": "Node crash occurs immediately after the State Machine `Apply()` function returns, but before the Consensus Log `Sync()` completes.",
+  "test_template": "1.  **Setup**: Configure a cluster (minimum 3 nodes) with a decoupled storage backend (Log vs. State).",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-27T02:44:04.425456",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 2487716,
+    "api_cost": 2.9845962
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

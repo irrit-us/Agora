@@ -1,0 +1,154 @@
+{
+  "repo": "raft-rs",
+  "language": "rust",
+  "last_updated": "2025-12-10T04:53:08.384264",
+  "package_name": null,
+  "module_path": null,
+  "test_structure": {
+    "test_dirs": [],
+    "test_pattern": "*_test.go",
+    "main_test_files": [],
+    "test_framework": null
+  },
+  "coding_style": {
+    "naming_convention": "TestXxx",
+    "setup_pattern": null,
+    "teardown_pattern": null,
+    "assertion_style": null,
+    "common_imports": [],
+    "error_handling_style": null
+  },
+  "helper_functions": [],
+  "fault_injection": [],
+  "key_types": [],
+  "test_templates": {},
+  "setup_boilerplate": null,
+  "lessons_learned": [
+    {
+      "issue": "Harness integration tests failed to compile because slog_term/slog_async are not available as dev-dependencies and MemStorage methods like first_index()/entries() were not in scope",
+      "solution": "Avoid using slog_term/slog_async directly in harness tests; instead reuse raft::default_logger() which is enabled via the harness default features. For MemStorage, import the raft::Storage trait and call Storage::entries/first_index/last_index with the required GetEntriesContext argument (e.g., raft::storage::GetEntriesContext::empty(false)). This matches how existing tests interact with MemStorage and compiles without adding new dependencies.",
+      "timestamp": "2025-12-09T17:53:07.391204",
+      "related_files": [],
+      "error_pattern": "slog_term::TermDecorator|slog_async::Async|no method named `first_index` found for reference `&MemStorage`"
+    },
+    {
+      "issue": "Harness consensus_bug_test used slog_term/slog_async and direct MemStorage methods causing missing crate and trait method errors",
+      "solution": "In harness tests, avoid bringing in new logging crates like slog_term/slog_async. Instead, use raft::default_logger() (re-exported in harness) to construct a Logger. For MemStorage, import the raft::Storage trait and call Storage::first_index/entries with a GetEntriesContext (e.g., GetEntriesContext::empty(false)), matching existing tests such as test_raft.rs.",
+      "timestamp": "2025-12-09T18:08:23.814929",
+      "related_files": [],
+      "error_pattern": "slog_term::|slog_async::|no method named `first_index` found for reference `&MemStorage`"
+    },
+    {
+      "issue": "Misused Storage::entries signature in harness tests and mishandled Entry.data bytes type",
+      "solution": "Storage::entries has signature entries(&self, low, high, max_size, context), so when calling through the Storage trait you must pass five arguments, e.g., Storage::entries(store, first, committed + 1, u64::MAX, GetEntriesContext::empty(false)). Additionally, eraftpb::Entry.data is a bytes field; when storing in Vec<u8>, use entry.data.to_vec() instead of entry.data.clone() to avoid mismatched type errors.",
+      "timestamp": "2025-12-09T18:09:27.028986",
+      "related_files": [],
+      "error_pattern": "the trait bound `Option<u64>: From<GetEntriesContext>` is not satisfied|this function takes 5 arguments but 4 arguments were supplied|expected `Vec<u8>`, found `Bytes`"
+    },
+    {
+      "issue": "RawNode::step returned Err(StepLocalMsg) when sending MsgHup directly; harness integration tests expect local messages to be injected via the underlying Raft or via harness helpers instead of stepping them through RawNode in new-style tests",
+      "solution": "Avoid calling RawNode::step with local message types like MsgHup. Instead, drive elections by ticking until timeouts as existing harness tests do, or in Raft-level tests use harness::new_message/new_test_raft which work directly with Raft, not RawNode. For RawNode-based harness tests, prefer to advance ticks and normal network messages rather than injecting MsgHup.",
+      "timestamp": "2025-12-09T19:23:05.295775",
+      "related_files": [],
+      "error_pattern": "StepLocalMsg"
+    },
+    {
+      "issue": "Attempted to elect a leader in a RawNode<MemStorage>-based ad-hoc cluster by manually stepping ticks and deliver() without using the existing harness Network abstraction, leading to nondeterministic or missing elections",
+      "solution": "For higher-level cluster simulations in harness, reuse the existing harness::Network utilities (Network::new, nt.send, nt.isolate, etc.) built on top of Raft Interface instead of raw HashMap<u64, RawNode<MemStorage>> plus manual ticking. For RawNode-only tests, drive elections with explicit MsgHup on the underlying Raft (via harness::new_message and Interface::raft.step) as done in integration_cases, rather than expecting elections to happen automatically in a Bare RawNode map.",
+      "timestamp": "2025-12-09T19:23:50.326850",
+      "related_files": [],
+      "error_pattern": "should have elected a leader"
+    },
+    {
+      "issue": "Harness test using ConfChange.write_to_bytes and all_entries(RawNode) failed to compile",
+      "solution": "Import protobuf::Message as PbMessage so that ConfChange::write_to_bytes is available, and define the helper all_entries<T: Storage>(store: &T) instead of taking &RawNode so it can be called with a Raft or RawNode.store(). This matches how existing tests access protobuf serialization and Storage entries.",
+      "timestamp": "2025-12-09T21:03:22.065983",
+      "related_files": [],
+      "error_pattern": "no method named `write_to_bytes` found for struct `ConfChange`|expected `&RawNode<MemStorage>`, found `&Raft<MemStorage>`"
+    },
+    {
+      "issue": "In harness crate standalone test files, importing test utilities via `crate::test_util::*` fails because the harness tests are not organized as a Rust module tree with `mod test_util`; instead `harness/tests/test_util` is a separate dev module compiled by Cargo test. Reusing helpers like `new_message`, `conf_state_v2` from test_util requires either duplicating minimal helper definitions or moving new tests into an existing module that already `mod test_util`.",
+      "solution": "For new stand-alone test targets under harness/tests (compiled as separate test crates), avoid `use crate::test_util::*;` because there is no `mod test_util`. Either (a) place new tests into an existing module hierarchy (e.g., `harness/tests/integration_cases`) where `mod test_util` is already wired up, or (b) locally redefine only the minimal helper functions/constructs needed (e.g., constructing Message, ConfState, etc.) instead of trying to import the shared test_util. In this repository, the simplest fix was to drop the `crate::test_util::*` import and inline direct uses of raft types/APIs (Message::default, conf_state_v2 recreated if needed) in the new test file.",
+      "timestamp": "2025-12-09T22:21:44.348316",
+      "related_files": [],
+      "error_pattern": "could not find `test_util` in the crate root"
+    },
+    {
+      "issue": "Tried to reuse crate::test_util helpers in a standalone harness test target, causing unresolved import errors",
+      "solution": "Standalone test crates under harness/tests cannot import crate::test_util because that module is only wired inside the aggregated tests.rs tree. For new top-level test files (compiled as separate test crates), locally define minimal helper functions like new_message and new_message_with_entries instead of using crate::test_util::*; also avoid importing unused types like MemStorage or Raft if not needed.",
+      "timestamp": "2025-12-09T22:41:37.678055",
+      "related_files": [],
+      "error_pattern": "unresolved import `crate::test_util`"
+    },
+    {
+      "issue": "Applying MemStorage::apply_snapshot/compact directly to a live leader while replication is active caused raft_log::commit_to to panic with `to_commit X is out of range [last_index Y]` in harness tests.",
+      "solution": "Avoid manually mutating the underlying MemStorage of an actively running Raft node to simulate snapshots. Instead, either (a) let Raft drive snapshot creation via its own request_snapshot/MsgSnapshot flow, or (b) if you must install a synthetic snapshot, do it only in controlled scenarios (e.g., immediately after node creation or after fully draining/pausing the network) and ensure you do not compact beyond the last_index known to Raft. For new tests, prefer exercising the normal snapshot protocol rather than forcing apply_snapshot on leaders mid-flight.",
+      "timestamp": "2025-12-10T01:25:47.888008",
+      "related_files": [],
+      "error_pattern": "to_commit .* is out of range \\[last_index .*\\]"
+    },
+    {
+      "issue": "Removing a peer from harness::Network while there are still in-flight messages targeting that peer caused `called Option::unwrap() on a None value` in Network::send.",
+      "solution": "Before removing a peer from Network.peers or Network.storage in harness tests, first drain and discard all queued messages that may reference the removed ID (using nt.read_messages() in a loop until it returns empty). Alternatively, avoid sending any new messages referencing that peer after removal. This prevents Network::send from unwrapping a missing peer and matches how existing tests safely simulate crashes.",
+      "timestamp": "2025-12-10T01:25:47.890427",
+      "related_files": [],
+      "error_pattern": "network.rs:168:55: called `Option::unwrap\\(\\)` on a `None` value"
+    },
+    {
+      "issue": "Harness test tried to import Config and ReadOnlyOption from private submodules (raft::config, raft::read_only) causing E0603 module is private errors.",
+      "solution": "In harness tests, import the public re-exports from the raft crate root instead of private modules. Use `use raft::{Config, ReadOnlyOption};` rather than `raft::config::Config` or `raft::read_only::ReadOnlyOption`, which are internal modules not exposed in the public API.",
+      "timestamp": "2025-12-10T01:48:07.515753",
+      "related_files": [],
+      "error_pattern": "module `config` is private|module `read_only` is private"
+    },
+    {
+      "issue": "Using RawNode::step with local messages like MsgHup in harness RawNode-based tests caused StepLocalMsg errors and panics when unwrapped.",
+      "solution": "Avoid calling RawNode::step with local message types. Instead, drive elections by ticking the RawNode instances until they time out and elect a leader naturally, then only use step for network messages originating from Ready. In the learner promotion / snapshot test, this was fixed by replacing the direct MsgHup injection with a loop that ticks all nodes and delivers Ready-generated messages until a unique leader emerges.",
+      "timestamp": "2025-12-10T02:11:07.092828",
+      "related_files": [],
+      "error_pattern": "StepLocalMsg"
+    },
+    {
+      "issue": "RawNode-based harness test attempted to elect a leader by ticking all nodes and delivering messages in a generic loop, but sometimes no unique leader emerged within a bounded number of rounds, causing panics like \"failed to elect a unique leader among [1, 2, 3] after 200 rounds\".",
+      "solution": "Instead of relying on bounded tick loops to elect a leader in ad-hoc RawNode<MemStorage> clusters, drive election explicitly by sending a MsgHup to the underlying Raft of a chosen node (using node.raft.step) and then running a few network/Ready rounds. This mirrors existing harness tests which either use Network::send with MsgHup or campaign()/MsgHup on a specific node, and avoids nondeterministic or slow elections when timing parameters or initial states differ.",
+      "timestamp": "2025-12-10T03:27:36.004965",
+      "related_files": [],
+      "error_pattern": "failed to elect a unique leader among .* after .* rounds"
+    },
+    {
+      "issue": "RawNode-based multi-node harness test attempted to wait for a leader using only a fixed number of pump_full rounds after calling campaign on one node, leading to flakiness / failure to elect a leader in time.",
+      "solution": "When using RawNode<MemStorage> directly to build a small cluster in tests, drive leader election deterministically by: (1) calling `campaign()` on a chosen node, and (2) looping for a sufficient number of short iterations that each do: tick all nodes, drain Ready for each node, and deliver all messages until the outbox is empty, while checking `find_leader` each iteration. Use a generous upper bound (e.g., 100–200 iterations) and break early once `find_leader` returns Some(id). Do not assume a small fixed number of rounds like 20 is always enough.",
+      "timestamp": "2025-12-10T04:05:48.869041",
+      "related_files": [],
+      "error_pattern": "should elect a leader"
+    },
+    {
+      "issue": "RawNode-based harness test for leader transfer safety failed with panic \"should elect a leader\" because waiting a fixed number of tick/network rounds sometimes did not elect a unique leader",
+      "solution": "Introduce an explicit helper elect_leader(&mut HashMap<u64, RawNode<MemStorage>>) that iterates up to a generous bound (e.g., 200 iterations), each doing: tick all nodes, run a full Ready/message delivery round, then scan for a unique leader and return its id if found. Use this helper in the test instead of assuming that 20 or 50 rounds of ticks is always enough to elect a leader.",
+      "timestamp": "2025-12-10T04:30:13.467053",
+      "related_files": [],
+      "error_pattern": "should elect a leader"
+    },
+    {
+      "issue": "RawNode-based three-node test attempted to elect a specific node (id=1) as leader and panicked when another node won the election instead, causing flaky failures like `cluster should elect a unique leader` or `expected leader 1 but got 2`.",
+      "solution": "When using RawNode<MemStorage> directly in harness tests, do not assert that a particular id becomes leader unless the test logic truly requires it. Instead, elect any unique leader using a helper like `elect_leader(&mut HashMap<u64, RawNode<MemStorage>>) -> u64` and then treat that node as the old leader. Structure the rest of the scenario in terms of this dynamically chosen leader (e.g., pick followers based on `peers.iter().filter(|id| *id != old_leader)`). This avoids spurious panics due to elections choosing a different, but still valid, leader and matches other harness patterns.",
+      "timestamp": "2025-12-10T04:53:08.384240",
+      "related_files": [],
+      "error_pattern": "cluster should elect a unique leader"
+    }
+  ],
+  "notes": [
+    "Tests go in harness/tests/ directory",
+    "Use #[test] attribute for test functions",
+    "Network struct simulates multi-node cluster without real networking",
+    "MemStorage provides in-memory storage for tests",
+    "Use slog for logging in tests",
+    "StateRole enum: Follower, Candidate, Leader, PreCandidate",
+    "Message types defined in eraftpb module",
+    "Config validation: config.validate()? before creating RawNode"
+  ],
+  "build_command": null,
+  "test_command": null,
+  "test_timeout": null,
+  "file_hashes": {}
+}

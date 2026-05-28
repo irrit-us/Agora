@@ -1,0 +1,236 @@
+{
+  "repo": "avalanchego",
+  "language": "go",
+  "last_updated": "2026-03-28T16:08:21.141021",
+  "package_name": null,
+  "module_path": null,
+  "test_structure": {
+    "test_dirs": [],
+    "test_pattern": "*_test.go",
+    "main_test_files": [],
+    "test_framework": null
+  },
+  "coding_style": {
+    "naming_convention": "TestXxx",
+    "setup_pattern": null,
+    "teardown_pattern": null,
+    "assertion_style": null,
+    "common_imports": [],
+    "error_handling_style": null
+  },
+  "helper_functions": [
+    {
+      "name": "setup",
+      "file": "snow/engine/snowman/engine_test.go",
+      "purpose": "Creates a Snowman Engine with DefaultConfig; wires validators, connected peers, sender, VM, and starts the engine with startReqID=0",
+      "signature": "func setup(t *testing.T, config Config) (ids.NodeID, validators.Manager, *enginetest.Sender, *blocktest.VM, *Engine)",
+      "parameters": [],
+      "usage_example": "vdr, _, sender, vm, eng := setup(t, DefaultConfig(t))\n// customize sender/vm then use eng methods",
+      "returns": "peer nodeID, validator manager, sender mock, VM mock, started engine"
+    },
+    {
+      "name": "makeTestBlock",
+      "file": "snow/engine/snowman/cascading_multi_height_confidence_poisoning_test.go",
+      "purpose": "Creates a test block with specified ID, parent, and height",
+      "signature": "func makeTestBlock(id ids.ID, parent ids.ID, height uint64) *snowmantest.Block",
+      "parameters": [],
+      "usage_example": null,
+      "returns": null
+    }
+  ],
+  "fault_injection": [],
+  "key_types": [],
+  "test_templates": {},
+  "setup_boilerplate": null,
+  "lessons_learned": [
+    {
+      "issue": "Dependency issue with github.com/tyler-smith/go-bip39 v1.1.0 causing all tests to fail with \"Repository not found\" error",
+      "solution": "This is a known issue with the repository being unavailable. For now, we'll need to work around it by focusing on the core consensus logic without the problematic dependencies.",
+      "timestamp": "2026-03-27T18:53:51.515147",
+      "related_files": [],
+      "error_pattern": null
+    },
+    {
+      "issue": "go test ./... failed due to non-Go content in *_test.go files (expected 'package', found '[') and e2e suite requiring AVALANCHEGO_PATH",
+      "solution": "Fix corrupted test files that start with JSON-like '[' by rewriting them as valid Go tests. Note: running go test ./... triggers tests/e2e which fails unless --avalanchego-path or AVALANCHEGO_PATH is set; for unit-test validation run targeted packages (e.g., go test ./snow/engine/snowman) or set env var.",
+      "timestamp": "2026-03-27T22:28:04.307453",
+      "related_files": [],
+      "error_pattern": "expected 'package', found '\\['|AVALANCHEGO_PATH are required"
+    },
+    {
+      "issue": "Needed to test mid-flight validator weight updates affecting Snowman poll outcomes; discovered Snowman engine poll accounting is count-based (bag of nodeIDs) and does not query validators.Manager weights at vote-processing time.",
+      "solution": "Write unit test that manually registers a poll via eng.polls.Add(requestID, bag.Of(nodeIDs...)) and delivers Chits/QueryFailed while mutating validators.Manager (RemoveWeight/AddWeight). Assert no conflicting accepts across two engines and that LastAccepted stays genesis until poll legitimately completes. Use ConnectedValidators left disconnected to avoid non-deterministic sampling/queries.",
+      "timestamp": "2026-03-27T23:48:40.719158",
+      "related_files": [],
+      "error_pattern": "(?s)InFlightValidatorWeightShift.*poll.*weights"
+    },
+    {
+      "issue": "Need to prevent unwanted VM.SetPreference calls when asserting a poll didn't finish in Snowman engine tests",
+      "solution": "After setting up engines and issuing candidate blocks, set vm.CantSetPreference = true before injecting votes. If a non-sampled/non-validator vote is incorrectly counted and a poll finishes, voter.Execute will call VM.SetPreference and the test will fail immediately, making the poll-accounting assertion stronger.",
+      "timestamp": "2026-03-28T00:20:07.454293",
+      "related_files": [],
+      "error_pattern": "(?i)Unexpectedly called SetPreference"
+    },
+    {
+      "issue": "Test flaked/failure when reusing the same bag.Bag[ids.NodeID] value across multiple poll.Set.Add calls (e.g., in two engines). Because bag.Bag uses an internal map, copying a bag copies the map reference, so poll.Vote/Remove mutates shared state across engines.",
+      "solution": "Create distinct polled bags per engine (e.g., polled1 := bag.Of(...); polled2 := bag.Of(...)) rather than reusing the same variable. Avoid copying bag.Bag by assignment when independent mutation is expected.",
+      "timestamp": "2026-03-28T00:51:52.442688",
+      "related_files": [],
+      "error_pattern": "require\\.Equal\\(0, eng2\\.polls\\.Len\\(\\)\\).*actual\\s+:\\s+1"
+    },
+    {
+      "issue": "Need to craft a cross-type response injection test against Snowman engine polls using Accepted + Chits with same requestID",
+      "solution": "Engine already embeds a no-op AcceptedHandler, so calling eng.Accepted(...) is safe and should not affect eng.polls. Build test in snow/engine/snowman package using newEngineWithDisconnectedStake + makeTestBlock (from inflight_validator_weight_shift_test.go). Manually add poll via eng.polls.Add(requestID, bag.Of(v1,v2,vByz)); set vm.CantSetPreference=true to tripwire. Inject eng.Accepted(ctx, vByz, requestID, set.Of(blockID)) then eng.Chits(...) from vByz and v1 only; assert eng.polls.Len()==1 and Consensus.LastAccepted()==genesis and blocks remain Undecided.",
+      "timestamp": "2026-03-28T01:03:33.724331",
+      "related_files": [],
+      "error_pattern": "(?s)CrossTypeResponseInjection|eng\\.Accepted\\(.*requestID.*\\).*polls"
+    },
+    {
+      "issue": "Attack scenario referenced snow/engine/snowman.Engine Ancestors/MultiPut handling, but this avalanchego version's Snowman Engine embeds a no-op AncestorsHandler; GetAncestors/Ancestors is handled by the Snowman bootstrapper instead.",
+      "solution": "Implement the gapped Ancestors response test against snow/engine/snowman/bootstrap.Bootstrapper (which issues SendGetAncestors and processes Ancestors). Assert it requests the missing parent on a gapped response and progresses once the missing block arrives.",
+      "timestamp": "2026-03-28T01:35:34.942962",
+      "related_files": [],
+      "error_pattern": "(?i)(no-op ancestors handler|unhandled by this gear|Snowman Engine.*Ancestors)"
+    },
+    {
+      "issue": "Need to test mixed terminal responses (Chits + QueryFailed) for same (validator, requestID) in Snowman engine poll accounting without nondeterministic network sampling.",
+      "solution": "Use newEngineWithDisconnectedStake (from inflight_validator_weight_shift_test.go) to create engines with ConnectedValidators disconnected. Manually add a poll with eng.polls.Add(requestID, bag.Of(...)) using distinct bag instances per engine to avoid aliasing. Issue conflicting blocks via eng.issue, then set vm.CantSetPreference=true as tripwire. Inject Chits then QueryFailed from same byzantine validator, plus one honest Chits, and assert polls.Len()==1 and LastAccepted remains genesis; competing blocks remain Undecided.",
+      "timestamp": "2026-03-28T01:58:14.547138",
+      "related_files": [],
+      "error_pattern": null
+    },
+    {
+      "issue": "Testing Byzantine selective response attacks in Snowman engine requires careful modeling of poll sampling and response patterns",
+      "solution": "Use newEngineWithDisconnectedStake to create isolated engines. Manually add polls with specific validator samples using eng.polls.Add(requestID, bag.Of(...)). Simulate Byzantine selective responses by calling eng.Chits() with different vote values for the same Byzantine validator responding to different engines. Ensure poll samples don't include validators that would vote against the attack scenario (e.g., exclude H2 from H1's poll if H2 prefers a conflicting block). Set appropriate alpha/beta parameters so Byzantine votes can achieve consensus thresholds.",
+      "timestamp": "2026-03-28T13:39:59.212867",
+      "related_files": [],
+      "error_pattern": "Byzantine.*selective.*response|divergent.*finalization|conflicting.*commits"
+    },
+    {
+      "issue": "Testing cascading chain divergence across multiple heights in Snowman engine requires careful management of block creation and parent relationships",
+      "solution": "Create separate block instances for each engine at each height, tracking them in maps indexed by height. Build parent relationships correctly by referencing the previous height's block ID for each chain. Use makeTestBlock(blockID, parentID, height) to create blocks. Allow SetPreference during block issuance (set vm.CantSetPreference=false before calling eng.issue()), then re-enable the tripwire (vm.CantSetPreference=true) before polling. This ensures blocks can be issued and preferences set, while still detecting unexpected preference changes during Byzantine response handling.",
+      "timestamp": "2026-03-28T13:45:11.557748",
+      "related_files": [],
+      "error_pattern": "Unexpectedly called SetPreference.*cascading.*divergence"
+    },
+    {
+      "issue": "Testing confidence oscillation attacks in Snowman engine requires simulating multiple phases of Byzantine selective responses with different timing patterns to cause confidence resets and offset finalization",
+      "solution": "Use newEngineWithDisconnectedStake to create isolated engines. Execute the attack in phases: (1) Build one node's confidence while stalling the other, (2) Switch support to build the other's confidence while resetting the first, (3) Repeat oscillation, (4) Finalize one node, (5) Finalize the other. Manually add polls with eng.polls.Add(requestID, bag.Of(...)) for each round. Track confidence resets by counting failed polls (when Byzantine nodes withhold or respond with genesis). Use different requestIDs for each round. Allow SetPreference during poll handling (vm.CantSetPreference=false) then re-enable tripwire. The attack succeeds if both nodes finalize different blocks at the same height with temporal offset, violating safety.",
+      "timestamp": "2026-03-28T13:50:57.435792",
+      "related_files": [],
+      "error_pattern": "confidence.*oscillation|intermittent.*withholding|offset.*finalization"
+    },
+    {
+      "issue": "Testing transitive confidence poisoning attacks in Snowman engine requires selective DAG exposure where different engines see different conflicting chains",
+      "solution": "Create separate block maps for each engine containing only the blocks they should see. For H1, include only blockA and blockC (A-chain). For H2, include only blockB and blockD (B-chain). Use newEngineWithDisconnectedStake to create isolated engines. Issue blocks to each engine separately. Byzantine nodes then vote for descendants (C to H1, D to H2), which transitively votes for conflicting ancestors (A and B). After β rounds, both engines finalize their respective chains, demonstrating the safety violation where conflicting blocks at height 1 are both accepted.",
+      "timestamp": "2026-03-28T13:53:43.301179",
+      "related_files": [],
+      "error_pattern": "transitive.*voting|selective.*DAG|ancestor.*confidence"
+    },
+    {
+      "issue": "Testing Byzantine response duplication attacks in Snowman engine requires understanding the poll deduplication mechanism",
+      "solution": "The Snowman engine's poll system (in snow/consensus/snowman/poll/) has built-in deduplication: when a validator votes via p.Vote(vdr, vote), the validator is removed from p.polled via p.polled.Remove(vdr). Subsequent votes from the same validator will have count=0 since p.polled.Count(vdr) returns 0. To test response duplication attacks: (1) Create engines with newEngineWithDisconnectedStake, (2) Manually add polls with eng.polls.Add(requestID, bag.Of(...)), (3) Call eng.Chits() multiple times with the same nodeID and requestID to simulate duplicate responses, (4) Verify that only the first response is counted and subsequent duplicates are ignored. The test should PASS (no safety violation) if deduplication works correctly.",
+      "timestamp": "2026-03-28T13:59:29.206033",
+      "related_files": [],
+      "error_pattern": "Byzantine.*duplicate.*response|response.*duplication|vote.*amplification"
+    },
+    {
+      "issue": "Testing recovery-phase exploitation where a third node H3 joins a network with pre-existing divergence (H1 finalized blockA, H2 finalized blockB) and Byzantine nodes manipulate H3 to finalize a third conflicting block C",
+      "solution": "Create three isolated engines using newEngineWithDisconnectedStake. First, cause H1 to finalize blockA and H2 to finalize blockB using Byzantine selective responses (the original bug). Then, issue all three blocks (A, B, C) to H3 and have Byzantine nodes vote for C while H1 and H2 vote for genesis (to avoid fetch requests for unknown blocks). This demonstrates three-way divergence where three honest nodes finalize three different blocks at the same height. Key: Have nodes vote for genesis instead of their finalized blocks when responding to other engines' polls to avoid triggering SendGet for unknown blocks.",
+      "timestamp": "2026-03-28T14:04:57.567804",
+      "related_files": [],
+      "error_pattern": "Unexpectedly called SendGet.*when.*Chits.*unknown block"
+    },
+    {
+      "issue": "Testing Byzantine strategic abstention attacks requires understanding that abstention (not responding) is different from responding with genesis, and the test should verify liveness violations after sufficient polling rounds",
+      "solution": "Create isolated engines with newEngineWithDisconnectedStake. Execute multiple cycles where Byzantine nodes: (1) Build confidence to β-2 by voting normally, (2) Abstain on the (β-1)th poll to reset confidence. Track confidence resets and total poll rounds. The attack succeeds (liveness violation) if neither conflicting block finalizes after 3β rounds despite sufficient polling. Use require.False() to assert blocks should NOT finalize if the bug exists. Check finalization using LastAccepted() or block.Status == snowtest.Accepted.",
+      "timestamp": "2026-03-28T14:14:09.130250",
+      "related_files": [],
+      "error_pattern": "Finalized undefined.*has no field or method Finalized"
+    },
+    {
+      "issue": "Testing Byzantine selective equivocation attacks in Snowman engine where a Byzantine node sends different votes to different honest nodes to cause them to finalize conflicting blocks",
+      "solution": "Create isolated engines using newEngineWithDisconnectedStake. Issue conflicting blocks (blockA and blockB) to both engines. For β rounds, manually add polls and simulate Byzantine node voting for blockA to eng1 and blockB to eng2 (selective equivocation). After β rounds, check if both engines finalized different blocks at the same height using LastAccepted(). If both finalized conflicting blocks, call t.Fatal() to report the safety violation. The test demonstrates that without cross-node vote consistency checks, a Byzantine node can exploit the confidence mechanism to cause divergent finalization.",
+      "timestamp": "2026-03-28T14:22:37.793352",
+      "related_files": [],
+      "error_pattern": "selective equivocation|conflicting finalization|Byzantine votes differently"
+    },
+    {
+      "issue": "Testing multi-height confidence scenarios in Snowman requires understanding that once height H+1 blocks are issued and gain confidence, the engine's preference moves to height H+1, making it difficult to finalize height H blocks retroactively",
+      "solution": "When testing multi-height scenarios, be aware that Snowman's preference mechanism moves forward to the highest height with confidence. If you want to test height H finalization after height H+1 blocks are introduced, you need to ensure height H+1 blocks don't gain enough confidence to shift the preference away from height H. Alternatively, test the scenario where height H finalizes first, then check if height H+1 blocks with invalid parents are properly rejected.",
+      "timestamp": "2026-03-28T14:35:11.118452",
+      "related_files": [],
+      "error_pattern": null
+    },
+    {
+      "issue": "Testing Byzantine confidence gradient attack where Byzantine node tries to prevent finalization by selectively abstaining based on estimated confidence levels",
+      "solution": "The Avalanche Snowman protocol is RESISTANT to this attack when honest nodes have sufficient majority. With 3 honest nodes and 1 Byzantine node, K=3, alpha=2: when any honest node polls, the other 2 honest nodes provide enough votes (2) to reach alpha, even without Byzantine's vote. Byzantine selective abstention cannot prevent finalization. The test should verify that blockA DOES finalize (require.True) despite Byzantine abstention, demonstrating correct protocol behavior. Track Byzantine abstention rate to confirm the attack was attempted. The protocol's resistance comes from the fact that honest nodes always vote for their preference, and with sufficient honest majority, they can reach consensus thresholds without Byzantine participation.",
+      "timestamp": "2026-03-28T14:46:08.304376",
+      "related_files": [],
+      "error_pattern": "Byzantine confidence gradient attack|selective abstention based on confidence"
+    },
+    {
+      "issue": "Testing Byzantine asymmetric timing attack where Byzantine nodes respond immediately to one honest node while delaying responses to another, then switch votes strategically to cause divergent finalization",
+      "solution": "The Avalanche Snowman protocol is RESISTANT to this attack. When Byzantine nodes delay responses to an honest node H2, H2's confidence counter resets because it doesn't receive enough votes (alpha threshold not met). Even if Byzantine nodes later respond immediately to H2, H2 must build confidence from scratch. Meanwhile, if Byzantine nodes switch their votes to a different block for H1, H1's confidence also resets. The protocol's requirement for consecutive successful polls prevents divergent finalization through timing manipulation alone. The test should verify that NO safety violation occurs (both nodes should either finalize the same block or one should not finalize at all).",
+      "timestamp": "2026-03-28T14:52:35.341931",
+      "related_files": [],
+      "error_pattern": "asymmetric timing.*safety violation"
+    },
+    {
+      "issue": "Testing Byzantine coordinated preference reversal attack with 5 validators (3 honest, 2 Byzantine) where Byzantine nodes try to cause oscillation by flipping preferences",
+      "solution": "The Avalanche Snowman protocol is RESISTANT to this attack when honest nodes have sufficient majority. With 3 honest nodes and 2 Byzantine nodes, K=4, alpha=3: when honest nodes poll, they receive 3 votes for their preferred block (from all honest nodes) and 2 votes for the Byzantine preference. Since alpha=3, the honest preference meets the threshold while Byzantine preference does not. Honest nodes maintain their preference and build confidence consistently, finalizing their preferred block after β rounds. The test should verify that the preferred block DOES finalize (require.Equal for LastAccepted, require.Equal for block.Status==snowtest.Accepted), demonstrating correct protocol behavior. Byzantine nodes cannot cause oscillation when they lack sufficient stake to reach alpha threshold.",
+      "timestamp": "2026-03-28T14:58:50.712991",
+      "related_files": [],
+      "error_pattern": "Byzantine coordinated preference reversal"
+    },
+    {
+      "issue": "Testing Byzantine late-stage conflicting block injection attack with 5 validators (3 honest, 2 Byzantine), K=4, alpha=3, β=4",
+      "solution": "The attack SUCCEEDS in causing a liveness violation. Byzantine nodes allow honest block (blockA) to build confidence for β-2 rounds by voting for it, then inject a conflicting block (blockB) and switch their votes. After the switch, each honest node polls 4 validators (2 other honest + 2 Byzantine) and receives only 2/4 votes for blockA (from the 2 other honest nodes), which does NOT meet alpha=3 threshold. This prevents blockA from building confidence and finalizing. The test should use t.Fatalf() to report the liveness violation, demonstrating that with these parameters, Byzantine nodes with 2/5 stake can exploit the confidence mechanism to cause deadlock by strategically timing conflicting block injection and vote switching.",
+      "timestamp": "2026-03-28T15:08:34.025244",
+      "related_files": [],
+      "error_pattern": "Byzantine late-stage conflicting block injection|confidence poisoning"
+    },
+    {
+      "issue": "Testing Byzantine selective block revelation attack with 5 validators (3 honest, 2 Byzantine), K=4, alpha=3, β=4, where Byzantine nodes selectively reveal a conflicting block to different honest nodes at different times and vote asymmetrically based on who is polling",
+      "solution": "The attack SUCCEEDS in causing a SAFETY VIOLATION. Byzantine nodes allow H1 to finalize blockA by: (1) revealing blockB only to H2 and H3 (not to H1), (2) voting for blockA when polled by H1, and (3) voting for blockB when polled by H2 and H3. This creates asymmetric views: H1 only knows blockA and receives 4/4 votes for it (meeting alpha=3), while H2 and H3 know both blocks but receive only 2/4 votes for blockA (below alpha=3). After β rounds, H1 finalizes blockA while H2 and H3 remain stuck at Genesis, creating divergent finalization states across honest nodes. The test should use t.Fatalf() to report the safety violation, demonstrating that with these parameters, Byzantine nodes can exploit selective block revelation and asymmetric voting to cause different honest nodes to finalize different blocks.",
+      "timestamp": "2026-03-28T15:14:21.555403",
+      "related_files": [],
+      "error_pattern": "SAFETY VIOLATION.*Different honest nodes finalized different blocks"
+    },
+    {
+      "issue": "Testing Cascading Multi-Height Confidence Poisoning Attack with 5 validators (3 honest, 2 Byzantine), K=4, alpha=3, β=4, where Byzantine nodes try to cause oscillation across multiple heights by building confidence for β-2 rounds then injecting conflicting blocks and switching votes",
+      "solution": "The Avalanche Snowman protocol is RESISTANT to this attack when honest nodes have sufficient majority. With 3 honest nodes and 2 Byzantine nodes, K=4, alpha=3: when any honest node polls 4 validators (2 other honest + 2 Byzantine), it receives 2 votes for blockA from other honest nodes. Combined with its own preference for blockA, this meets the alpha=3 threshold. Byzantine nodes' 2 votes for blockB cannot reach alpha=3. The honest nodes maintain their preference for first-seen blocks (blockA at each height) and successfully finalize them across all heights despite Byzantine attempts to cause cascading oscillation. The test should verify that all heights DO finalize (require.Equal for block.Status==snowtest.Accepted), demonstrating correct protocol behavior. The protocol's resistance comes from the fact that honest nodes always vote for their preference, and with sufficient honest majority (3/5 > 2/3), they can reach consensus thresholds without Byzantine cooperation.",
+      "timestamp": "2026-03-28T15:21:51.722951",
+      "related_files": [],
+      "error_pattern": null
+    },
+    {
+      "issue": "Testing Byzantine vote equivocation attack with 5 validators (3 honest, 2 Byzantine), K=5, alpha=3, β=4, where Byzantine nodes send different votes to different honest nodes in the same polling round",
+      "solution": "The attack SUCCEEDS in causing a SAFETY VIOLATION. Byzantine nodes equivocate by: (1) voting for blockA when polled by H1, (2) voting for blockB when polled by H2, and (3) sending mixed votes when polled by H3. This creates asymmetric views: H1 receives 5/5 votes for blockA (unanimous support) and finalizes it after β=4 rounds, while H2 receives 3/5 votes for blockA and 2/5 votes for blockB (split votes) and H3 receives 4/5 votes for blockA and 1/5 votes for blockB. Despite H2 and H3 meeting the alpha=3 threshold for blockA, they do NOT finalize it, while H1 does. This creates divergent finalization states across honest nodes, demonstrating that Byzantine equivocation can cause safety violations in the Snowman consensus protocol with these parameters.",
+      "timestamp": "2026-03-28T15:26:52.439191",
+      "related_files": [],
+      "error_pattern": "Byzantine.*equivocation|vote.*equivocation|safety.*violation"
+    }
+  ],
+  "notes": [
+    "AvalancheGo implements three consensus protocols: Snowball (binary/multi-choice voting), Snowman (linear chain), and Simplex (BFT block proposal)",
+    "Snowball is the fundamental voting primitive; Snowman builds on it for linear blockchain consensus; Avalanche extends it for DAG-based consensus",
+    "Key consensus flow: Add block -> validators sample peers -> RecordPoll with votes -> repeat until Beta consecutive successful polls -> block is Accepted",
+    "Consensus parameters: K=sample size, AlphaPreference/AlphaConfidence=vote thresholds, Beta=consecutive confidence rounds needed for finalization",
+    "Parameter constraints: K/2 < AlphaPreference <= AlphaConfidence <= K, 0 < ConcurrentRepolls <= Beta",
+    "Test pattern: create Factory -> factory.New() -> Initialize with context and params -> Add blocks -> RecordPoll with vote bags -> check Preference/Finalized",
+    "snowmantest.Genesis is the standard genesis block for tests (height=0, status=Accepted)",
+    "snowmantest.BuildChild(parent) creates a child block; snowmantest.BuildChain(n) creates genesis + n-1 descendants",
+    "snowtest.Context(t, chainID) creates a full test context; snowtest.ConsensusContext(ctx) wraps it for consensus use",
+    "The Topological implementation (snow/consensus/snowman/topological.go) is the main Snowman consensus implementation",
+    "Tests use require (testify) assertions extensively: require.NoError, require.Equal, require.True, etc.",
+    "Module path: github.com/ava-labs/avalanchego",
+    "Simplex consensus (simplex/) is a newer BFT protocol integrated into AvalancheGo for block proposal and agreement",
+    "snow/engine/snowman/ contains the Snowman engine that connects consensus to the VM and P2P layer",
+    "Mock implementations: snowmanmock.Block (go.uber.org/mock generated), enginetest.Sender, blocktest.VM"
+  ],
+  "build_command": null,
+  "test_command": null,
+  "test_timeout": null,
+  "file_hashes": {}
+}

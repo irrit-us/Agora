@@ -1,0 +1,19 @@
+{
+  "pattern_id": "TransientMissingStateMisclassifiedAsInvalid_BadBlockPersistence",
+  "protocol_type": "bft",
+  "description": "Many implementations conflate \u201cI cannot currently validate this block due to missing local prerequisites\u201d with \u201cthis block is permanently invalid by consensus rules.\u201d If the system persists/caches the latter conclusion (bad-block DB, reject cache, peer penalization), then once the missing state is restored the node still refuses the canonical block. This yields permanent sync stalls and/or long-lived divergence that survives restarts.",
+  "fault_type": "crash_recovery / storage_corruption / sync_gap (local transient prerequisite missing)",
+  "bug_category": "liveness (primary) / agreement (secondary)",
+  "trigger_condition": "- A node imports/validates a block whose execution requires specific state trie nodes (account/storage paths) that are temporarily unavailable locally (MissingNode, pruned snapshot gap, incomplete state sync).",
+  "test_template": "1) Setup:",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T03:03:45.521387",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 16742933,
+    "api_cost": 9.53355585
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

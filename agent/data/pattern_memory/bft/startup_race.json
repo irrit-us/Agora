@@ -1,0 +1,28 @@
+{
+  "tags": [
+    "bug_pattern",
+    "race_condition",
+    "bft",
+    "cometbft",
+    "consensus",
+    "startup",
+    "block_sync",
+    "mode_switch"
+  ],
+  "context": {
+    "issue_url": "https://github.com/cometbft/cometbft/issues/487",
+    "bug_category": "race_condition",
+    "pattern_type": "startup_race",
+    "source_number": 487,
+    "is_pr": false
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-04T17:12:00",
+  "embedded": false,
+  "pattern_id": "Data race during startup when switching from block-sync to consensus mode",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Intermittent data race in consensus.State during startup when switching from block-sync to consensus mode. DESCRIPTION: A data race occurs between reconstructLastCommit() writing to consensus state (called via SwitchToConsensus from BlockchainReactor.poolRoutine) and updateRoundStateRoutine() reading from the same state (started in Reactor.OnStart). The race manifests when block-sync completes and the node switches to active consensus participation. ROOT CAUSE: The consensus Reactor starts updateRoundStateRoutine in OnStart before the node may have finished block-sync. When SwitchToConsensus is called, it modifies state that the already-running routine is reading. No synchronization protects this transition window. LESSON: Mode transitions in consensus systems are race-prone: 1) Identify all goroutines started during OnStart and what state they access; 2) Mode switches (block-sync → consensus, catching-up → active) must synchronize with background routines; 3) Don't start routines that read consensus state until the state is fully initialized; 4) Use race detector in CI for consensus code - these bugs are intermittent and hard to catch otherwise; 5) Consider state machine patterns where mode transitions are explicit synchronization points."
+}

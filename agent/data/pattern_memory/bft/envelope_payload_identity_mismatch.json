@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Envelope-Payload Identity Mismatch",
+  "protocol_type": "bft",
+  "description": "This pattern occurs when a distributed system validates the sender of a message (Envelope) and the signer of the data (Payload) independently, without enforcing that they must be the same entity.",
+  "fault_type": "byzantine_injection",
+  "bug_category": "safety",
+  "trigger_condition": "Processing a composite message where the outer envelope (transport) and inner payload (data) both contain identity claims.",
+  "test_template": "1. **Setup**: Initialize a cluster with N nodes. Identify the current privileged node (Target) and a non-privileged node (Attacker).",
+  "discovered_in_repo": "hotstuff",
+  "discovery_date": "2026-01-27T02:56:20.508643",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 1869903,
+    "api_cost": 2.2716019999999997
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Committed Command Vanishing via Witness Amnesia",
+  "protocol_type": "cft",
+  "description": "The recovery mechanism incorrectly infers that an instance is empty/unused if a quorum of available nodes has no record of it, failing to account for the possibility that a participating node crashed and lost its state (amnesia), while the only node with the commit record is partitioned. This leads to a committed command being replaced by a NoOp, causing state divergence when the partitioned node reconnects.",
+  "fault_type": "crash_fault",
+  "bug_category": "agreement",
+  "trigger_condition": "Leader crash + Witness crash (amnesia) + Partition of the only node with Commit record",
+  "test_template": "1. Setup 5 replicas (R0-R4).\n2. R0 proposes CmdA, Fast Path accepts on R0, R1, R2.\n3. R0 commits CmdA only to R2.\n4. R0 crashes.\n5. R1 crashes and restarts (amnesia/log wipe).\n6. R2 is partitioned.\n7. R3 recovers R0's instance, queries R1, R3, R4.\n8. R1 (amnesia), R3, R4 (empty) report no state.\n9. R3 commits NoOp.\n10. R2 reconnects with committed CmdA.\n11. Assert divergence: R2 has CmdA, R3 has NoOp.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-24T18:19:46.349556",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

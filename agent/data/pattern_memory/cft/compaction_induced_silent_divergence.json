@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Compaction Induced Silent Divergence",
+  "protocol_type": "cft",
+  "description": "The protocol's recovery mechanism fails to account for nodes that have executed and compacted (checkpointed) a Fast Path command that is later recovered with different dependencies. This leads to silent state divergence where the recovering node applies the new dependency order on top of its existing, irreversible checkpoint state.\n\nSpecifically:\n1. A leader (R0) fast-commits and executes a command (CmdA).\n2. R0 compacts its log (checkpoints state, deletes CmdA log entry).\n3. R0 crashes.\n4. Another replica (R1) recovers CmdA. Due to a concurrent command (CmdB), R1 adds a dependency CmdA->CmdB to resolve conflicts.\n5. R1 executes CmdB then CmdA.\n6. R0 restarts, loads its checkpoint (which includes CmdA executed *before* CmdB).\n7. R0 learns of CmdB and executes it *after* CmdA.\n8. Result: R0 executes A->B, R1 executes B->A. Divergence.",
+  "fault_type": "crash_fault",
+  "bug_category": "safety",
+  "trigger_condition": "Fast Path execution followed by compaction/checkpointing, then crash, then recovery with changed dependencies.",
+  "test_template": "1. Setup cluster with 3 replicas.\n2. Execute CmdA on R0 (Fast Path).\n3. Simulate compaction on R0 (update state, remove log entry).\n4. Simulate crash of R0.\n5. Inject CmdB on R2.\n6. Simulate recovery of CmdA on R1, forcing dependency on CmdB.\n7. Execute on R1 (verify B->A order).\n8. Restart R0, sync CmdB.\n9. Execute on R0 (verify A->B order).\n10. Assert state divergence.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-24T16:24:45.971960",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

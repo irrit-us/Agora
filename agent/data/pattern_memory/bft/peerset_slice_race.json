@@ -1,0 +1,28 @@
+{
+  "tags": [
+    "bug_pattern",
+    "race_condition",
+    "bft",
+    "cometbft",
+    "p2p",
+    "slice",
+    "backing_array",
+    "go_concurrency"
+  ],
+  "context": {
+    "issue_url": "https://github.com/cometbft/cometbft/issues/2158",
+    "bug_category": "race_condition",
+    "pattern_type": "slice_backing_array_race",
+    "source_number": 2158,
+    "is_pr": false
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-04T17:42:00",
+  "embedded": false,
+  "pattern_id": "Go slice copy shares backing array causing race when original is modified during iteration",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: P2P Switch.OnStop race condition due to stale PeerSet.List() sharing backing array. DESCRIPTION: Switch.OnStop calls peers.List() which returns a copy of the peer slice while under lock. However, after the lock is released, the original slice can be modified by Remove() operations. The 'copy' shares the same backing array as the original, so modifications (like setting elements to nil for GC) affect both. OnStop then reads stale or corrupted data. ROOT CAUSE: Go slice copies share the underlying array with the original. The List() method creates a new slice header but not a new backing array. When Remove() modifies the original slice (setting elements to nil), these changes are visible through the 'copy'. This is a leaky abstraction - the copy appears independent but isn't. LESSON: In Go concurrent code with slices: 1) Slice copies share backing arrays - use copy() to create truly independent slices; 2) Methods returning 'copies' of slices should document whether they share memory; 3) When modifying slices concurrently, nil-ing elements for GC can cause races with readers; 4) Consider returning immutable views or deep copies from thread-safe collections; 5) This pattern is especially dangerous in OnStop/cleanup code where timing assumptions break down."
+}

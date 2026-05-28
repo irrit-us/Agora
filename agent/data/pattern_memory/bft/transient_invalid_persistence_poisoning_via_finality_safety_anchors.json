@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Transient-Invalid Persistence Poisoning via Finality/Safety Anchors",
+  "protocol_type": "bft",
+  "description": "A transient inability to execute (missing state) is treated as proof of invalidity. Persisting this classification creates a self-sustaining poison pill: subsequent forkchoice updates consult invalid/bad-block caches and reject canonical anchors. This breaks replica convergence because other nodes (with intact state) accept the chain as valid, while the poisoned node permanently refuses it.",
+  "fault_type": "crash_recovery + byzantine_or_buggy_coordinator (Engine API caller) + storage_fault (missing state)",
+  "bug_category": "agreement (primary) / liveness (secondary)",
+  "trigger_condition": "- A node validates a proposed block while missing required execution state (parent state/trie nodes), causing execution to fail.",
+  "test_template": "1) Setup",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T02:14:48.367354",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 8999505,
+    "api_cost": 5.33316805
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

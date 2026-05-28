@@ -1,0 +1,28 @@
+{
+  "tags": [
+    "bug_pattern",
+    "liveness",
+    "deadlock",
+    "cft",
+    "hashicorp-raft",
+    "shutdown",
+    "goroutine",
+    "buffered_channel"
+  ],
+  "context": {
+    "issue_url": "https://github.com/hashicorp/raft/issues/268",
+    "bug_category": "liveness",
+    "pattern_type": "deadlock",
+    "source_number": 268,
+    "is_pr": false
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-04T16:52:00",
+  "embedded": false,
+  "pattern_id": "Shutdown deadlock - takeSnapshot blocks on configReq while main goroutine exits",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: Raft.Shutdown() API can end up in a deadlock with runSnapshots goroutine. DESCRIPTION: A deadlock occurs between Raft.Shutdown() and runSnapshots() goroutine. When takeSnapshot() blocks on configReq.Error() waiting for the future to be processed, but the main raft goroutine (runLeader/runCandidate/runFollower) receives shutdown signal and exits WITHOUT processing the pending request in configurationsCh, the takeSnapshot remains blocked forever. ROOT CAUSE: The buffered configurationsCh (size 8) allows requests to be enqueued, but during shutdown the main goroutine exits before draining pending requests. Shutdown().Error() waits for all goroutines to finish, but runSnapshots never returns because takeSnapshot is blocked. LESSON: When implementing graceful shutdown in distributed systems: 1) Always drain pending requests in buffered channels before exiting; 2) Use context cancellation or timeout on blocking operations; 3) Never assume that enqueued requests will be processed - the consumer may exit; 4) Design shutdown sequence to handle in-flight operations explicitly."
+}

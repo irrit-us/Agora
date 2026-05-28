@@ -1,0 +1,29 @@
+{
+  "tags": [
+    "bug_pattern",
+    "liveness",
+    "cft",
+    "raft",
+    "probe",
+    "invariant",
+    "message_delay",
+    "progress_tracking"
+  ],
+  "context": {
+    "issue_url": "https://github.com/etcd-io/raft/issues/148",
+    "bug_category": "liveness",
+    "pattern_type": "invariant_violation",
+    "source_number": 148,
+    "is_pr": false,
+    "confirmed_by": "pav-kv (contributor)"
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-04T18:25:00",
+  "embedded": false,
+  "pattern_id": "Probe state can set Next < Match violating Raft invariant due to delayed message handling",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: Probe state can set Next index less than Match, violating Raft invariant. DESCRIPTION: In MaybeDecrTo() for probe state, the code pr.Next = max(min(rejected, matchHint+1), 1) can set Next < Match. The code checks pr.Next-1 != rejected to detect stale responses, assuming only one probe is in flight (where Next-1 == Match). But messages can be delayed, reordered, or duplicated, breaking this assumption. A delayed rejected probe response received when leader enters another probe state can corrupt the progress tracking. ROOT CAUSE: The probe state logic assumes single-probe-in-flight but network can deliver old responses later. The staleness check uses Next-1 instead of Match, which is only equivalent under the single-probe assumption. When multiple delayed responses exist, the wrong check allows Next to go below Match. LESSON: In Raft progress tracking: 1) Always check invariants (Next > Match) explicitly, not via proxy conditions; 2) Network can delay/reorder/duplicate any message - design for this; 3) Assumptions like 'only one message in flight' are fragile; 4) The StateReplicate branch correctly checks against Match - probe should too; 5) Test with message delays, reordering, and duplication scenarios."
+}

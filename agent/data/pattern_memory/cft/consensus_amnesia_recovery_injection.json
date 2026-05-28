@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Consensus Amnesia Recovery Injection",
+  "protocol_type": "cft",
+  "description": "This pattern targets the assumption that a node's local state is monotonic. In distributed consensus, if a node \"forgets\" a promise or an accepted value due to disk failure or lack of `fsync`, it becomes an \"amnesic\" node. If a new leader (or recovery coordinator) relies on this amnesic node to reconstruct the global history, the leader may choose a value that contradicts a value already chosen by a previous leader. This is particularly dangerous in protocols like EPaxos or Generalized Paxos where the \"Fast Path\" allows for tentative values to be recovered.",
+  "fault_type": "Crash-Recovery with Persistence Failure",
+  "bug_category": "safety",
+  "trigger_condition": "A replica acknowledges a state transition (e.g., Prepare -> Accept -> Commit) but fails to persist it, then crashes and recovers with stale state while a new leader attempts recovery.",
+  "test_template": "1.  **Cluster Setup**: Initialize a cluster of size $N$ with failure tolerance $F$.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-27T02:30:49.967600",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 865403,
+    "api_cost": 1.7166491999999995
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

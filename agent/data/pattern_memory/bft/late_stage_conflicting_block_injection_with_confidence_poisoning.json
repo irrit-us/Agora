@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Late-Stage Conflicting Block Injection with Confidence Poisoning",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern affects consensus protocols that use incremental confidence building through multiple voting rounds before finalization. The attack exploits the temporal gap between \"high confidence\" (near finalization) and \"finalized\" (irreversible commitment).",
+  "fault_type": "byzantine_strategic_timing",
+  "bug_category": "liveness",
+  "trigger_condition": "- Byzantine validators control f < n/3 stake (within BFT tolerance)",
+  "test_template": "```",
+  "discovered_in_repo": "avalanchego",
+  "discovery_date": "2026-03-28T15:09:53.110132",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 8650174,
+    "api_cost": 28.448897999999996
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Safe-Block Orphaning via Gap-Region Reorg",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern occurs in consensus protocols that implement multi-level finality (e.g., proposed \u2192 safe \u2192 finalized) when the execution layer fails to properly validate the monotonicity and ancestry of safety markers. The attack exploits the following sequence:",
+  "fault_type": "byzantine_consensus_client",
+  "bug_category": "safety",
+  "trigger_condition": "1. Protocol supports incremental finality/safety markers (e.g., \"safe\" blocks before \"finalized\")",
+  "test_template": "```",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T15:16:49.998704",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 3963648,
+    "api_cost": 13.294367999999999
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

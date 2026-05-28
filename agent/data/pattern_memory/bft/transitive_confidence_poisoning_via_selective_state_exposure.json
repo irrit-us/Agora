@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Transitive Confidence Poisoning via Selective State Exposure",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern exploits the gap between state visibility and confidence accumulation in consensus protocols that use transitive voting optimizations. The attack works by creating divergent views of the protocol state (DAG, blockchain, or state machine) across different honest nodes through selective information disclosure, while maintaining voting patterns that appear consistent to each isolated honest node.",
+  "fault_type": "byzantine_coordination_with_selective_information_disclosure",
+  "bug_category": "safety",
+  "trigger_condition": "1. Protocol uses transitive voting or implicit confidence propagation mechanisms",
+  "test_template": "```",
+  "discovered_in_repo": "avalanchego",
+  "discovery_date": "2026-03-28T13:55:03.262415",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 2002417,
+    "api_cost": 6.810591
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

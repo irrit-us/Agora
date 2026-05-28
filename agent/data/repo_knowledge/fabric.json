@@ -1,0 +1,173 @@
+{
+  "repo": "fabric",
+  "language": "go",
+  "last_updated": "2025-12-10T04:27:37.073659",
+  "package_name": null,
+  "module_path": null,
+  "test_structure": {
+    "test_dirs": [],
+    "test_pattern": "*_test.go",
+    "main_test_files": [],
+    "test_framework": null
+  },
+  "coding_style": {
+    "naming_convention": "TestXxx",
+    "setup_pattern": null,
+    "teardown_pattern": null,
+    "assertion_style": null,
+    "common_imports": [],
+    "error_handling_style": null
+  },
+  "helper_functions": [
+    {
+      "name": "createNetwork",
+      "file": "orderer/consensus/etcdraft/chain_test.go",
+      "purpose": "Constructs a multi-node etcdraft test network with fake RPC, block puller, and per-node data directories, wiring each chain into the network abstraction for partition and crash simulations.",
+      "signature": "func createNetwork(timeout time.Duration, channel, dataDir string, raftMetadata *raftprotos.BlockMetadata, consenters map[uint64]*raftprotos.Consenter, cryptoProvider bccsp.BCCSP, tlsCA tlsgen.CA, haltCallback func()) *network",
+      "parameters": [],
+      "usage_example": "raftMetadata := &raftprotos.BlockMetadata{ConsenterIds: []uint64{1,2,3}, NextConsenterId:4}\nnetwork := createNetwork(10*time.Second, \"my-channel\", dataDir, raftMetadata, consenters, mustCreateCryptoProvider(), tlsCA, nil)\nnetwork.init()\nnetwork.start()\nnetwork.elect(1)",
+      "returns": "*network that holds per-node chains and allows operations like init, start, stop, elect, connect, disconnect, join, addChain, and exec"
+    },
+    {
+      "name": "mustCreateCryptoProvider",
+      "file": "orderer/consensus/etcdraft/crash_replay_nondeterministic_block_cut_test.go",
+      "purpose": "Constructs a BCCSP crypto provider for tests and panics on error",
+      "signature": "func mustCreateCryptoProvider() bccsp.BCCSP",
+      "parameters": [],
+      "usage_example": "cryptoProvider := mustCreateCryptoProvider()",
+      "returns": "bccsp.BCCSP instance backed by sw.NewDefaultSecurityLevelWithKeystore(sw.NewDummyKeyStore())"
+    },
+    {
+      "name": "network and chain helpers",
+      "file": "orderer/consensus/etcdraft/chain_test.go",
+      "purpose": "Test harness for multi-node etcdraft clusters with crash, partition, election, and restart control",
+      "signature": "type network struct { chains map[uint64]*chain; leader uint64; ... }\nfunc createNetwork(timeout time.Duration, channel, dataDir string, raftMetadata *raftprotos.BlockMetadata, consenters map[uint64]*raftprotos.Consenter, cryptoProvider bccsp.BCCSP, tlsCA tlsgen.CA, haltCallback func()) *network\nfunc (n *network) init()\nfunc (n *network) start()\nfunc (n *network) stop(ids ...uint64)\nfunc (n *network) elect(id uint64)\nfunc (n *network) connect(id uint64)\nfunc (n *network) disconnect(id uint64)\nfunc (n *network) join(id uint64, isRaft bool)\nfunc (n *network) addChain(c *chain)\nfunc (n *network) exec(f func(c *chain))",
+      "parameters": [],
+      "usage_example": "raftMetadata := &raftprotos.BlockMetadata{ConsenterIds: []uint64{1,2,3}, NextConsenterId:4}\nnetwork := createNetwork(10*time.Second, \"my-channel\", dataDir, raftMetadata, consenters, mustCreateCryptoProvider(), tlsCA, nil)\nnetwork.init()\nnetwork.start()\nnetwork.elect(1)\n// partition and crash\nnetwork.disconnect(2)\nnetwork.stop(1)\n// restart from disk\nrestarted := newChain(10*time.Second, \"my-channel\", node1Dir, 1, raftMetadata, consenters, mustCreateCryptoProvider(), nil, nil)\nnetwork.addChain(restarted)\nrestarted.init()\nrestarted.start()\nnetwork.join(1, true)",
+      "returns": "*network representing the Raft cluster; *chain encapsulates per-node state including ledger, raft Node, and mocks"
+    }
+  ],
+  "fault_injection": [],
+  "key_types": [],
+  "test_templates": {},
+  "setup_boilerplate": null,
+  "lessons_learned": [
+    {
+      "issue": "New etcdraft test used a helper mustCreateCryptoProvider without defining it and missed required imports, causing undefined identifier and import errors.",
+      "solution": "Reused the existing pattern from other etcdraft tests by adding proper imports (bccsp, sw, tlsgen, os, flogging) and defining a local mustCreateCryptoProvider helper that wraps sw.NewDefaultSecurityLevelWithKeystore and panics via flogging on error. Also fixed Gomega Equal misuse by marshalling headers before comparing bytes.",
+      "timestamp": "2025-12-09T18:10:04.118923",
+      "related_files": [],
+      "error_pattern": "undefined: mustCreateCryptoProvider|undefined: tlsgen|too many arguments in call to Equal"
+    },
+    {
+      "issue": "Tried to open orderer/consensus/etcdraft/network_test.go assuming a shared network helper, but file does not exist.",
+      "solution": "Do not assume a network_test.go helper; instead, search actual crash/split-brain tests (e.g., crash_replay_nondeterministic_block_cut_test.go, chain_split_brain_test.go) to discover the in-repo network and chain helper types used there.",
+      "timestamp": "2025-12-09T18:21:09.574880",
+      "related_files": [],
+      "error_pattern": "network_test.go"
+    },
+    {
+      "issue": "New etcdraft durability-race test failed to compile due to undefined identifiers `orderer` and `filepath` in the test file.",
+      "solution": "Imported the correct orderer protobuf package (`github.com/hyperledger/fabric-protos-go-apiv2/orderer`) and the standard library `path/filepath`, matching how other etcdraft tests reference ConsensusRequest and filesystem paths. After adding these imports and running `gofmt`, the etcdraft test suite compiled and ran successfully.",
+      "timestamp": "2025-12-09T18:31:17.712453",
+      "related_files": [],
+      "error_pattern": "undefined: orderer|undefined: filepath"
+    },
+    {
+      "issue": "New etcdraft snapshot-recovery test initially failed to compile due to unused local helper, missing filepath import, and redeclaration of mustCreateCryptoProvider.",
+      "solution": "Removed the unused waitForHeight helper, imported the standard library path/filepath package for deriving the node data directory, and reused the existing package-level mustCreateCryptoProvider helper from crash_replay_nondeterministic_block_cut_test.go instead of redeclaring it. Also cleaned up unused sw/flogging imports after removing the local helper.",
+      "timestamp": "2025-12-09T18:43:24.065948",
+      "related_files": [],
+      "error_pattern": "snapshot_recovery_overlap_divergence_test.*(undefined: filepath|redeclared|imported and not used)"
+    },
+    {
+      "issue": "Ran etcdraft test suite and encountered 'no space left on device' while compiling, unrelated to test code semantics",
+      "solution": "Treat ENOSPC during 'go test' as an environmental CI error, not a problem with the new test. The test file compiles (gofmt succeeds and previous syntax errors were fixed), so defer further execution until disk space is available.",
+      "timestamp": "2025-12-09T19:39:11.067482",
+      "related_files": [],
+      "error_pattern": "no space left on device"
+    },
+    {
+      "issue": "New snapshot-boundary crash safety test initially failed to compile because SnapshotIntervalSize field in chain options is uint32, but the test assigned a uint64 constant directly, causing a type mismatch.",
+      "solution": "Instead of introducing local uint64 constants and assigning them to c.opts.SnapshotIntervalSize, follow existing tests by assigning small integer literals (e.g., 1) directly, which are untyped and compatible with the uint32 field. The new test was updated to use the same pattern as snapshot_recovery_overlap_divergence_test.go: setting c.opts.SnapshotCatchUpEntries = 2 and c.opts.SnapshotIntervalSize = 1 inside network.exec.",
+      "timestamp": "2025-12-09T20:09:01.192590",
+      "related_files": [],
+      "error_pattern": "cannot use .*SnapshotIntervalSize .* of type uint64 as uint32 value in assignment"
+    },
+    {
+      "issue": "New etcdraft race/partition test used string('A'+i) to build payloads, causing Go compiler error 'conversion from int to string yields a string of one rune, not a string of digits'.",
+      "solution": "Avoid int-to-string via rune arithmetic when constructing payloads. Instead, use fmt.Sprintf(\"heal-%d\", i) (or similar) to build human-readable strings, and then convert to []byte if needed. Updated both the new premature_config_activation_split_test and crash_induced_ledger_raft_desync_test to use fmt.Sprintf when constructing post-heal payloads.",
+      "timestamp": "2025-12-09T20:38:23.563233",
+      "related_files": [],
+      "error_pattern": "conversion from int to string yields a string of one rune"
+    },
+    {
+      "issue": "New stale snapshot reinstallation safety test initially failed to build due to an unused path/filepath import",
+      "solution": "Removed the unused path/filepath import from stale_snapshot_reinstall_ledger_fork_test.go, matching the pattern in other etcdraft tests that only import filepath when actually deriving per-node data dirs. After removal, the etcdraft test suite compiled; subsequent go test failures were due to ENOSPC in unrelated tests, consistent with prior lessons.",
+      "timestamp": "2025-12-09T20:48:00.999988",
+      "related_files": [],
+      "error_pattern": "\"path/filepath\" imported and not used"
+    },
+    {
+      "issue": "Go compile error 'missing ',' before newline in argument list' in new etcdraft test due to tabs vs spaces and malformed import / indentation introduced while pasting large test file.",
+      "solution": "Open the indicated file around the reported line and inspect for malformed syntax, such as missing commas between arguments, inconsistent indentation, or stray characters. In this case the file itself was structurally valid at the end, and the error was due to earlier lines; running 'sed -n' around the reported region helped confirm the tail of the file was correct. The fix is to ensure imports and argument lists use standard Go formatting (tabs before import paths, commas between arguments) and then run 'gofmt -w' on the file to normalize formatting before 'go test'.",
+      "timestamp": "2025-12-09T22:27:19.743344",
+      "related_files": [],
+      "error_pattern": "missing ',' before newline in argument list"
+    },
+    {
+      "issue": "New config-block crash atomicity test tried to access unexported raftMetadataLock field and earlier edits corrupted uses of Eventually in the file, and an existing test had an unused local variable blockNHash causing build failure.",
+      "solution": "Avoid accessing unexported fields like raftMetadataLock in the test harness; instead, rely on exported or already-exposed state such as chain.opts.BlockMetadata without extra locking, or approximate membership assertions using other observable values. Ensure any automated text replacements of Gomega helpers are correct (use Eventually, not misspelled variants). Finally, remove unused locals like blockNHash from crash_recovery_commit_rollback_conflicting_block_conflicting_block_test.go to restore a clean build.",
+      "timestamp": "2025-12-09T22:44:32.968047",
+      "related_files": [],
+      "error_pattern": "raftMetadataLock undefined|cannot refer to unexported field raftMetadataLock|undefined: Eventuallyy"
+    },
+    {
+      "issue": "New etcdraft safety test imported the orderer proto package but never used it, causing a Go build failure for an unused import.",
+      "solution": "Removed the unused github.com/hyperledger/fabric-protos-go-apiv2/orderer import from crash_during_rollback_conflicting_height_test.go and reran go test. The test suite then built and the specific spec executed successfully.",
+      "timestamp": "2025-12-10T01:13:10.029452",
+      "related_files": [],
+      "error_pattern": "\"github.com/hyperledger/fabric-protos-go-apiv2/orderer\" imported and not used"
+    },
+    {
+      "issue": "New etcdraft crash/partition safety test imported orderer and raftpb/protoadapt but didn't use them, and attempted to read a non-existent RaftTerm field from BlockMetadata, causing Go build failures.",
+      "solution": "Removed unused imports (ordererprotos, raftpb, protoadapt) from the new test file and simplified the committed-entry tracking logic to use only the header and payload from block metadata, avoiding any reference to a RaftTerm field that doesn't exist on BlockMetadata. This matches patterns from existing tests, which use BlockMetadata.RaftIndex or just compare block headers/data rather than low-level Raft term/index fields.",
+      "timestamp": "2025-12-10T02:10:51.076497",
+      "related_files": [],
+      "error_pattern": "crash_partition_commit_persistence_race_conflicting_blocks_test.go:.* imported and not used|BlockMetadata has no field or method RaftTerm"
+    },
+    {
+      "issue": "New staggered reconfiguration partition safety test failed to build due to an unused chain variable (c5) in the test's BeforeEach.",
+      "solution": "Removed the unused variable by only declaring the chain pointers that are actually referenced later in the test (c1,c2,c3,c4) and regenerated the file. This resolved the Go compile error about the unused variable and allowed the etcdraft test suite to build.",
+      "timestamp": "2025-12-10T03:41:13.058544",
+      "related_files": [],
+      "error_pattern": ".*staggered_reconfig_partition_dual_commit_histories_test.go:.* declared and not used: c5"
+    },
+    {
+      "issue": "New ledger-ahead-of-Raft crash-window safety test failed to build because of an unused local variable and incorrect usage of protoutil.BlockDataHash, which now returns (hash, error).",
+      "solution": "Removed the unused prevC1Blocks variable from the new test file to satisfy Go's no-unused-vars rule, and updated the header construction for the synthetic conflicting block to call protoutil.BlockDataHash(dataX) into a (hash, err) pair with proper error checking before assigning the DataHash field. This aligns with current helpers and avoids single-value misuse of multi-value return functions.",
+      "timestamp": "2025-12-10T04:02:37.137269",
+      "related_files": [],
+      "error_pattern": "multiple-value protoutil\\.BlockDataHash\\("
+    },
+    {
+      "issue": "New snapshot membership drift safety test attempted to access unexported confState and raftID fields on Chain.Node and Chain, causing Go compile errors, and left an unused leaderStatus local variable.",
+      "solution": "Adjusted the test to avoid touching unexported internals by using the already-exposed Chain.opts.BlockMetadata as the effective Raft membership source, comparing its ConsenterIds against the ledger-derived BlockMetadata from the last config block. Removed the unused leaderStatus local and any direct references to Node.confState or raftID. This matches patterns from other etcdraft tests that reason about membership via BlockMetadata rather than low-level Raft ConfState.",
+      "timestamp": "2025-12-10T04:13:50.625034",
+      "related_files": [],
+      "error_pattern": "confState undefined \\(cannot refer to unexported field confState\\)|raftID undefined \\(cannot refer to unexported field raftID\\)"
+    }
+  ],
+  "notes": [
+    "Fabric uses etcd/raft for CFT ordering (orderer/consensus/etcdraft/)",
+    "SmartBFT module provides BFT ordering (orderer/consensus/smartbft/)",
+    "Tests use testify/require for assertions - fails immediately on error",
+    "Integration tests often use mock clusters with simulated network partitions",
+    "Orderer nodes form the consensus cluster, peers receive blocks from orderers",
+    "Quorum for Raft is (n/2)+1 nodes"
+  ],
+  "build_command": null,
+  "test_command": null,
+  "test_timeout": null,
+  "file_hashes": {}
+}

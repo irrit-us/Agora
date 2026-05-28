@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Stale Metadata Adoption in Recovery",
+  "protocol_type": "cft",
+  "description": "This pattern occurs in distributed consensus protocols (like Paxos, Raft, EPaxos) when the recovery mechanism fails to distinguish between \"tentative\" initial state and \"final\" committed state.",
+  "fault_type": "Network Partition followed by Crash Recovery",
+  "bug_category": "safety",
+  "trigger_condition": "1. A leader proposes a command.",
+  "test_template": "1. **Setup:** Initialize a cluster of 3 nodes (N1, N2, N3).",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-27T02:43:49.326723",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 2647689,
+    "api_cost": 3.1322377999999995
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

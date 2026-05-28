@@ -1,0 +1,156 @@
+{
+  "repo": "dragonboat",
+  "language": "go",
+  "last_updated": "2025-12-10T04:49:38.140467",
+  "package_name": null,
+  "module_path": null,
+  "test_structure": {
+    "test_dirs": [],
+    "test_pattern": "*_test.go",
+    "main_test_files": [],
+    "test_framework": null
+  },
+  "coding_style": {
+    "naming_convention": "TestXxx",
+    "setup_pattern": null,
+    "teardown_pattern": null,
+    "assertion_style": null,
+    "common_imports": [],
+    "error_handling_style": null
+  },
+  "helper_functions": [
+    {
+      "name": "testSysEventListener",
+      "file": "nodehost_test.go",
+      "purpose": "Captures system events like snapshot creation, log compaction, and snapshot receipt for tests",
+      "signature": null,
+      "parameters": [],
+      "usage_example": null,
+      "returns": null
+    }
+  ],
+  "fault_injection": [],
+  "key_types": [],
+  "test_templates": {},
+  "setup_boilerplate": null,
+  "lessons_learned": [
+    {
+      "issue": "Missing imports for chan transport factory and statemachine package when adding NodeHost-level test",
+      "solution": "In dragonboat package tests, when using the in-process channel transport and IStateMachine factories, you must import the channel transport plugin as `chantrans \"github.com/lni/dragonboat/v4/plugin/chan\"` and the statemachine package as `sm \"github.com/lni/dragonboat/v4/statemachine\"`. Use `chantrans.ChanTransportFactory{}` to set `Expert.TransportFactory`, and declare state machine factories with signature `func(shardID uint64, replicaID uint64) sm.IStateMachine`.",
+      "timestamp": "2025-12-09T17:41:46.623850",
+      "related_files": [],
+      "error_pattern": "undefined: chantrans|undefined: sm"
+    },
+    {
+      "issue": "Using tests.NewKVTest directly in NodeHost tests can panic when proposal payload is not PBKV-encoded",
+      "solution": "For NodeHost-level membership or transport tests that don't care about application data, avoid using internal/tests.KVTest directly with arbitrary []byte payloads. Either encode commands as kvpb.PBKV messages or use a simple state machine like PST that ignores the command bytes. In snapshot_membership_splitbrain_test.go, switching createSM from NewKVTest to &PST{} fixed a panic caused by KVTest.Update unmarshalling non-PBKV data.",
+      "timestamp": "2025-12-09T17:46:14.678532",
+      "related_files": [],
+      "error_pattern": "proto: PBKV: wiretype end group for non-group"
+    },
+    {
+      "issue": "Compilation errors in new snapshot crash-window test due to missing imports and using monkey-only APIs in regular build",
+      "solution": "Import the standard io package for snapshot state machine methods, and avoid calling NodeHost.PartitionNode/RestorePartitionedNode which only exist in dragonboat_monkeytest builds. Instead, comment that partitioning would be used under monkey harness and simplify the test to exercise snapshot + compaction without explicit partition APIs.",
+      "timestamp": "2025-12-09T18:43:11.503280",
+      "related_files": [],
+      "error_pattern": "undefined: io|PartitionNode undefined"
+    },
+    {
+      "issue": "ChanTransportFactory.Validate panics when used directly in NodeHostConfig in normal tests",
+      "solution": "Do not set Expert.TransportFactory to *chantrans.ChanTransportFactory directly in regular tests. Instead, when running under invariants.MemfsTest (memfs test mode), use chan transport; otherwise rely on the default TCP transport. Mirror the pattern used in snapshot_membership_splitbrain_test.go: conditionally set nhc.Expert.TransportFactory = &chantrans.ChanTransportFactory{} only when invariants.MemfsTest is true.",
+      "timestamp": "2025-12-09T19:21:40.830718",
+      "related_files": [],
+      "error_pattern": "ChanTransportFactory\\.Validate\\(\"not suppose to be called\"\\)"
+    },
+    {
+      "issue": "Used sm.SnapshotWriter and sm.SnapshotReader types when implementing IStateMachine SaveSnapshot/RecoverFromSnapshot, causing undefined type compilation errors.",
+      "solution": "Dragonboat's IStateMachine interface uses standard io.Writer and io.Reader for snapshot methods, not wrapper types. Use signatures `SaveSnapshot(w io.Writer, fc sm.ISnapshotFileCollection, stopc <-chan struct{}) error` and `RecoverFromSnapshot(r io.Reader, files []sm.SnapshotFile, stopc <-chan struct{}) error` and import the `io` package. This matches existing tests like snapshot_delayed_overwrite_test.go.",
+      "timestamp": "2025-12-09T19:36:26.609767",
+      "related_files": [],
+      "error_pattern": "undefined: sm\\.Snapshot(Writer|Reader)"
+    },
+    {
+      "issue": "Duplicate definition of testSysEventListener.getLogCompacted and unused variable in new snapshot crash-window test",
+      "solution": "Do not re-declare helper methods that already exist in nodehost_test.go. Instead, rely on the existing testSysEventListener.getLogCompacted helper, and remove unused local variables like v1PostRestart to satisfy the Go compiler's unused variable checks.",
+      "timestamp": "2025-12-09T19:48:10.736894",
+      "related_files": [],
+      "error_pattern": "getLogCompacted already declared"
+    },
+    {
+      "issue": "Compilation errors when adding a new snapshot regression test due to re-declaring an existing helper state machine and using incorrect snapshot method signatures",
+      "solution": "Reused the existing counterSM type from snapshot_delayed_overwrite_test.go by wrapping it in a new sessionCounterSM type instead of re-declaring counterSM, and matched the IStateMachine snapshot method signatures to use io.Writer and io.Reader (with an explicit io import) rather than non-existent sm.SnapshotWriter/Reader types. Also ensured we did not try to access client/session fields on sm.Entry, which only exposes Index, Cmd, and Result.",
+      "timestamp": "2025-12-09T20:37:09.423453",
+      "related_files": [],
+      "error_pattern": "counterSM redeclared in this block|undefined: sm.SnapshotWriter|undefined: sm.SnapshotReader"
+    },
+    {
+      "issue": "Needed to approximate snapshot-install crash and reconfiguration interaction without direct crash hooks or network partition APIs",
+      "solution": "Followed existing snapshot crash-window regression tests by running under invariants.MemfsTest with chan transport, using upToDateCounterSM for observable (val,lastApplied), and approximating mid-install crash by closing and restarting a follower after observing SnapshotReceived events. Then used OrderedConfigChange and SyncRequestDeleteReplica to remove the follower while it is down, drove more proposals to force snapshots, and finally restarted the removed node to assert membership views, leader election behavior, and logical state equivalence/monotonicity across voters.",
+      "timestamp": "2025-12-09T20:59:54.029878",
+      "related_files": [],
+      "error_pattern": null
+    },
+    {
+      "issue": "Missing io import in splitbrain_stalemembership_single_step_reconfig_test.go causing undefined: io compilation error",
+      "solution": "Ensure the standard library io package is imported when implementing IStateMachine.SaveSnapshot and RecoverFromSnapshot in new tests. Follow the pattern from snapshot_delayed_overwrite_test.go: add `\"io\"` to the import block and use signatures SaveSnapshot(w io.Writer, fc sm.ISnapshotFileCollection, stopc <-chan struct{}) and RecoverFromSnapshot(r io.Reader, files []sm.SnapshotFile, stopc <-chan struct{}) error.",
+      "timestamp": "2025-12-09T22:44:52.783738",
+      "related_files": [],
+      "error_pattern": "undefined: io.*splitbrain_stalemembership_single_step_reconfig_test.go"
+    },
+    {
+      "issue": "Unused import of raftio in snapshot_crashwindow_conflicting_committed_logs_test.go caused build failure",
+      "solution": "Removed the unused raftio import from the new snapshot_crashwindow_conflicting_committed_logs_test.go file and re-ran go test. Ensured that all imports in new tests are actually referenced to satisfy the Go compiler's unused import checks.",
+      "timestamp": "2025-12-10T01:08:33.267518",
+      "related_files": [],
+      "error_pattern": "snapshot_crashwindow_conflicting_committed_logs_test.go:.* imported and not used"
+    },
+    {
+      "issue": "Unused local variables in new snapshot crash-window multigroup test caused Go build failures",
+      "solution": "Adjusted the golden-prefix verification loop to either use the per-node payload variables in assertions or explicitly discard them via blank identifier assignments so that the Go compiler does not treat them as unused. Specifically, renamed the variables to v1g2/v2g2/v3g2 and referenced them or assigned them to _ where necessary.",
+      "timestamp": "2025-12-10T01:26:54.575132",
+      "related_files": [],
+      "error_pattern": "declared and not used: v[123]"
+    },
+    {
+      "issue": "Missing imports for io and encoding/binary in new snapshot-aware state machine test caused undefined identifier compilation errors",
+      "solution": "Followed existing snapshot tests and imported the standard library io and encoding/binary packages, and used the correct IStateMachine snapshot method signatures SaveSnapshot(w io.Writer, fc sm.ISnapshotFileCollection, stopc <-chan struct{}) and RecoverFromSnapshot(r io.Reader, files []sm.SnapshotFile, stopc <-chan struct{}) error. After adding these imports and adjusting signatures, go test compiled successfully.",
+      "timestamp": "2025-12-10T01:51:02.385015",
+      "related_files": [],
+      "error_pattern": "undefined: io|undefined: binary"
+    },
+    {
+      "issue": "Missing statemachine import when creating a new NodeHost-level snapshot crash-window test using sm.IStateMachine factory",
+      "solution": "In dragonboat package tests that define createSM factories returning sm.IStateMachine, you must import the statemachine package with an alias, e.g. `sm \"github.com/lni/dragonboat/v4/statemachine\"`. Without this import, references to sm.IStateMachine or sm.Entry will fail to compile with `undefined: sm`. Follow the patterns in existing tests such as snapshot_crashwindow_stale_leader_election_test.go and snapshot_membership_splitbrain_test.go.",
+      "timestamp": "2025-12-10T02:21:37.512678",
+      "related_files": [],
+      "error_pattern": "undefined: sm"
+    },
+    {
+      "issue": "Unused import pb in new snapshot_inflight_apply_prefix_safety_test.go caused Go build failure",
+      "solution": "Removed the unused raftpb import from snapshot_inflight_apply_prefix_safety_test.go. Ensure that all imports in new tests are actually referenced; otherwise, delete them to satisfy the Go compiler's unused import checks.",
+      "timestamp": "2025-12-10T04:01:23.619395",
+      "related_files": [],
+      "error_pattern": "imported as .* and not used"
+    },
+    {
+      "issue": "Need a dedicated namespace-aware state machine to detect cross-group snapshot misbinding under nodeID reuse",
+      "solution": "Added namespaceCounterSM and namespaceCounterState types in a new regression test snapshot_crashwindow_multigroup_nodeid_reuse_snapshot_misbinding_test.go. The state machine is initialised with a per-shard base (0 for shard 1, 1e9 for shard 2) so that any cross-group snapshot mixup manifests as a value crossing the nsSplit threshold. The test reuses existing helpers (testSysEventListener, hasSnapshotAndCompactionForShard, lpto, getRTTMillisecond, getTestExpertConfig) and follows the existing multi-node NodeHost/memfs/chan transport patterns. go test ./... confirms the test builds and passes in the monkey environment.",
+      "timestamp": "2025-12-10T04:49:38.140439",
+      "related_files": [],
+      "error_pattern": null
+    }
+  ],
+  "notes": [
+    "Dragonboat is a high-performance multi-group Raft implementation",
+    "Based on etcd/raft with significant optimizations",
+    "Core Raft code in internal/raft/ follows etcd/raft patterns",
+    "NodeHost manages multiple Raft groups efficiently",
+    "Tests include etcd compatibility tests (*_etcd_test.go)",
+    "Quorum is (n/2)+1 for Raft consensus",
+    "Supports concurrent state machines and disk-based storage"
+  ],
+  "build_command": null,
+  "test_command": null,
+  "test_timeout": null,
+  "file_hashes": {}
+}

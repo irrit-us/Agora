@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Ghost Ancestor Injection via Pruned History Bypass",
+  "protocol_type": "bft",
+  "description": "The protocol fails to verify the existence or validity of ancestors if they belong to a pruned epoch/round. When a node receives a block that references an ancestor in a pruned range (below GC round), it assumes the ancestor is valid/committed and skips verification. This allows an attacker to inject a \"Ghost Chain\" starting from a pruned round with arbitrary content (e.g., malicious reconfiguration or state change) and build a valid-looking chain on top of it. The node accepts the new chain, effectively executing the ghost ancestors' logic without them ever being committed or validated.",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "Receiving a block chain that extends from a round lower than the current Garbage Collection (GC) round.",
+  "test_template": "1. Setup a DAG and advance it to trigger Garbage Collection (GC) up to Round X.\n2. Construct a \"Ghost Block\" at Round Y < X (pruned range) with malicious content.\n3. Build a chain of blocks on top of the Ghost Block, extending to Round Z > X (active range).\n4. Inject the Tip of the chain (Round Z) to the victim.\n5. Inject the rest of the chain (Ghost Block ... Tip).\n6. Assert that the Tip is accepted.\n7. Assert that the Ghost Block is NOT in the DAG (or is accepted despite being malicious).\n8. If Tip is accepted but Ghost is missing/malicious, the bug is present.",
+  "discovered_in_repo": "sui",
+  "discovery_date": "2026-01-24T16:45:29.053566",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

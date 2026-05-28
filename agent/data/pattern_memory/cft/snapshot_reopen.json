@@ -1,0 +1,21 @@
+{
+  "tags": [
+    "bug_pattern",
+    "bytes_buffer",
+    "reader_reuse",
+    "snapshot",
+    "state_recovery",
+    "hashicorp-raft"
+  ],
+  "context": {
+    "issue_url": "https://github.com/hashicorp/raft/issues/269",
+    "bug_category": "state_inconsistency",
+    "pattern_type": "one_shot_reader_reuse",
+    "confirmed_by": "contributor (RobbieMcKinstry)",
+    "problematic_type": "bytes.Buffer returned directly",
+    "fix_approach": "use bytes.NewReader() for independent readers"
+  },
+  "pattern_id": "bytes.Buffer one-shot reader reuse causes empty snapshot on second Open",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: One-Shot Reader Reuse Causes Empty Data. DESCRIPTION: InmemSnapshotStore.Open() returns an empty reader when called a second time on the same snapshot. The underlying bytes.Buffer can only be read once - after first read, the buffer position is at the end and subsequent reads return io.EOF immediately. ROOT CAUSE: The code returns ioutil.NopCloser(m.latest.contents) where m.latest.contents is a bytes.Buffer. bytes.Buffer maintains a read position that advances as data is read. After first complete read, position is at end, so second read gets zero bytes. SCENARIO: (1) Snapshot is created and stored in InmemSnapshotStore, (2) First Open() call reads snapshot successfully, (3) Recovery fails or retry needed, (4) Second Open() call returns reader with zero content, (5) State recovery fails with empty/corrupt state. IMPACT: Snapshot recovery retries fail silently with empty data, potentially causing node to start with incorrect state or fail to join cluster. FIX: Create a new bytes.Reader from the buffer's bytes on each Open() call: bytes.NewReader(m.latest.contents.Bytes()). This creates independent readers that don't share position state. LESSON: bytes.Buffer is stateful and not safe for multiple sequential reads. When returning readers that may be consumed multiple times, either copy the data or use bytes.NewReader() which creates an independent reader. Always consider whether returned readers might be used more than once."
+}

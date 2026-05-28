@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Ghost Ancestor Injection (Pruned History Equivocation)",
+  "protocol_type": "bft",
+  "description": "The protocol fails to validate \"missing ancestor\" blocks against canonical history checkpoints if those ancestors belong to rounds that have already been pruned locally. This allows an attacker to inject a conflicting history (equivocation) by presenting it as a dependency chain for a new, valid-looking block. Specifically, when a node fetches missing ancestors for a new block, it may accept an equivocating block for a pruned round because the local conflict check passes (no record found) and the checkpoint validation is missing or insufficient.",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "Pruning of historical blocks + Attacker injecting equivocating block for a pruned round as an ancestor of a new block.",
+  "test_template": "1. Run honest network until Round N.\n2. Prune history up to Round K (where K < N).\n3. Attacker forges Ghost Block B'K (Round K) that equivocates with pruned B_K.\n4. Attacker builds ghost chain B'K <- ... <- B'M (where M > N).\n5. Attacker injects B'M.\n6. Victim fetches ancestors, receiving B'K.\n7. Assert that B'K is REJECTED. If accepted, assert that extending the chain (B'K+1) is REJECTED.",
+  "discovered_in_repo": "sui",
+  "discovery_date": "2026-01-24T16:20:42.735285",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

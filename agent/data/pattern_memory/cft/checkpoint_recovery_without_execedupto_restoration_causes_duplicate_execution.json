@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Checkpoint Recovery Without ExecedUpTo Restoration Causes Duplicate Execution",
+  "protocol_type": "cft",
+  "description": "When a replica creates a checkpoint that captures the state machine snapshot but does not atomically persist the ExecedUpTo metadata, and upon recovery the ExecedUpTo is not restored from checkpoint metadata, the replica will re-execute commands that were already included in the checkpoint. This violates the safety property that each committed command should be executed exactly once.\n\nThe bug manifests as follows:\n1. Replica executes instances (R,0) through (R,N) and updates state machine\n2. Checkpoint is created capturing state machine state\n3. Checkpoint metadata records which instances are included (e.g., checkpoint_instance_space_R = N)\n4. ExecedUpTo[R] = N in memory but not persisted with checkpoint\n5. More instances are executed after checkpoint\n6. Replica crashes before persisting updated ExecedUpTo\n7. On recovery: state machine is restored from checkpoint, but ExecedUpTo[R] is reset to -1\n8. Replica sees instances (R,0) through (R,N) in log with status COMMITTED (EXECUTED status not persisted)\n9. Since ExecedUpTo[R] = -1 < N, replica re-executes these instances\n10. With non-idempotent operations (INCREMENT, APPEND), this causes state machine divergence\n\nThe root cause is that checkpoint recovery does not restore ExecedUpTo from checkpoint metadata. The latestCPInstance field tracks the last instance in the checkpoint but is never used to initialize ExecedUpTo on recovery.",
+  "fault_type": "crash_fault",
+  "bug_category": "safety",
+  "trigger_condition": "Replica crash after checkpoint creation but before persisting ExecedUpTo, followed by recovery that loads checkpoint state but does not restore ExecedUpTo from checkpoint metadata",
+  "test_template": "1. Create replica with COMMITTED instances (R,0) through (R,N)\n2. Execute instances (R,0) through (R,K) where K < N\n3. Verify state machine updates and instances marked as EXECUTED\n4. Simulate checkpoint: save state machine snapshot and checkpoint_instance_space_R = K\n5. Execute remaining instances (R,K+1) through (R,N)\n6. Simulate crash: create new replica instance\n7. Restore instances from \"disk\" with status COMMITTED (not EXECUTED)\n8. Restore state machine from checkpoint\n9. Do NOT restore ExecedUpTo (leave at -1, simulating the bug)\n10. Attempt to execute instances (R,0) through (R,K)\n11. Verify instances transition from COMMITTED to EXECUTED (re-execution detected)\n12. With non-idempotent operations, verify state divergence\n13. Assert: ExecedUpTo[R] should be restored to checkpoint_instance_space_R on recovery",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-25T11:41:38.856845",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

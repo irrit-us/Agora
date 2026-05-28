@@ -1,0 +1,25 @@
+{
+  "tags": [
+    "bug_pattern",
+    "race_condition",
+    "non_atomic_update",
+    "mempool",
+    "cometbft",
+    "concurrent_access"
+  ],
+  "context": {
+    "issue_url": "https://github.com/cometbft/cometbft/issues/3694",
+    "bug_category": "race_condition",
+    "pattern_type": "non_atomic_multi_variable_update",
+    "code_location": "mempool/clist_mempool.go addTx() lines 398-400",
+    "related_variables": [
+      "txs (CList)",
+      "txsMap (sync.Map)",
+      "txsBytes"
+    ],
+    "concurrent_accessor": "broadcastTxRoutine"
+  },
+  "pattern_id": "Non-atomic multi-variable update race - txs/txsMap/txsBytes updated without synchronization",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Non-Atomic Multi-Variable Update Race Condition. DESCRIPTION: CListMempool.addTx() updates three related variables (txs, txsMap, txsBytes) non-atomically, allowing concurrent readers to see inconsistent state. ROOT CAUSE: The addTx function executes: (1) e := mem.txs.PushBack(memTx), (2) mem.txsMap.Store(txKey, e), (3) mem.txsBytes.Add(). These three operations should be atomic but are not. The updateMtx mutex only guards local ABCI client calls, not concurrent access from broadcastTxRoutine. RACE SCENARIO: (1) addTx executes line 398, new entry added to txs CList, (2) Context switch to broadcastTxRoutine, (3) broadcastTxRoutine picks new entry from txs to broadcast, (4) Before sending, it checks if tx exists in txsMap (line 277), (5) But line 399 (txsMap.Store) hasn't executed yet, (6) Check fails - transaction not sent despite being in mempool. IMPACT: Valid transactions may not be broadcast to peers, causing delayed or missed transaction propagation. FIX: Either use a single lock to guard all three updates and reads, or restructure to use a single atomic data structure, or ensure readers wait for complete entry creation. LESSON: When multiple variables represent related state (like txs/txsMap/txsBytes all representing mempool contents), all updates must be atomic with respect to concurrent readers. A common pattern is 'add to list then add to map' - but readers checking the map will miss entries during the gap between these operations."
+}

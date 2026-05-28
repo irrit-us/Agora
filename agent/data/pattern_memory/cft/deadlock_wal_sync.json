@@ -1,0 +1,28 @@
+{
+  "tags": [
+    "bug_pattern",
+    "liveness",
+    "deadlock",
+    "cft",
+    "fabric",
+    "raft",
+    "channel_sync"
+  ],
+  "context": {
+    "issue_url": "https://github.com/hyperledger/fabric/issues/4199",
+    "bug_category": "liveness",
+    "pattern_type": "deadlock",
+    "source_number": 4199,
+    "is_pr": false,
+    "related_pr": "https://github.com/hyperledger/fabric/pull/3919"
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-04T16:50:00",
+  "embedded": false,
+  "pattern_id": "Deadlock between Ready signal and WAL sync during orderer startup config change apply",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: Deadlock on etcd raft orderer chain apply change on orderer startup. DESCRIPTION: A deadlock occurs during orderer startup while applying raft configuration changes. The node run function receives Ready() signal and emits apply change signal to chain. Chain's apply function needs to sync WAL by emitting signal back to node. If select randomly chooses Ready() before WALSyncC, another apply signal is emitted while chain is still waiting. ROOT CAUSE: Two goroutines waiting on each other - node blocked on applyC send, chain blocked on WALSyncC receive. The Go select statement's random selection when multiple signals are waiting causes non-deterministic ordering that can lead to circular wait. LESSON: When designing channel-based synchronization in distributed systems, avoid patterns where two components can block waiting on each other. Use non-blocking sends, buffered channels, or redesign the communication flow to prevent circular dependencies. Always consider the non-deterministic nature of select with multiple ready channels."
+}

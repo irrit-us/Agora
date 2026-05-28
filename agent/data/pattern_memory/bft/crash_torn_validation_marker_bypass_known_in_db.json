@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Crash-Torn Validation Marker Bypass (\u201cKnown-in-DB == Valid\u201d)",
+  "protocol_type": "bft",
+  "description": "Many distributed/consensus systems separate ingestion/persistence from semantic validation (e.g., EVM execution, signature verification, state-machine application). If the durability boundary is not atomic, crashes can leave \u201chalf-ingested\u201d items that look complete enough to be rediscovered. A common bug is a fast-path that returns \u201cvalid/accepted\u201d when the item is present in storage, without checking a durable validation-status bit or re-executing validation. This can launder invalid items into the \u201cvalid\u201d set and even into canonical state, violating safety/agreement and often causing liveness failure (node wedges on an invalid head).",
+  "fault_type": "crash_recovery / torn_persistence (non-atomic durability across validation boundary)",
+  "bug_category": "safety + agreement (primary), liveness (secondary)",
+  "trigger_condition": "- The implementation persists \u201cpresence\u201d artifacts for an object (block/proposal/log entry) before persisting a durable validation outcome.",
+  "test_template": "(portable to other implementations):",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-27T23:44:50.498621",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 4739717,
+    "api_cost": 2.97970785
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

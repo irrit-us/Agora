@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Selective Ancestor Equivocation Causing Commit Divergence",
+  "protocol_type": "bft",
+  "description": "In DAG-based consensus, a Byzantine validator can create equivocating blocks with strategically different ancestor sets and selectively broadcast them to different honest nodes. This causes honest nodes to build divergent DAG views. When each node independently commits and linearizes blocks based on their local view, they produce different transaction sequences, violating the safety (agreement) property.\n\nThe attack works because:\n1. Each honest node's local DAG view is valid and internally consistent\n2. The commit logic operates independently on each node's view without cross-validation\n3. There's no mechanism to detect that other nodes have committed different equivocating blocks\n4. The linearizer produces different sequences based on different committed blocks\n\nTest demonstrates:\n- H1 sees and commits B2_v1 (with ancestors [B1, H1_1])\n- H2/H3 see and commit B2_v2 (with ancestors [B1, H2_1, H3_1])\n- Result: H1 linearizes tx=[0x02] while H2/H3 linearize tx=[0x03] at the same position\n- Divergence cascades through subsequent rounds",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "Byzantine leader creates equivocating blocks with different ancestor sets at the same round and selectively broadcasts them to partition honest nodes' DAG views",
+  "test_template": "\n1. Create separate DagState instances for each honest node (to simulate independent views)\n2. Build common DAG base (rounds 1-2) that all nodes agree on\n3. Byzantine node creates two equivocating blocks at round R with different ancestor sets\n4. Selectively broadcast: send block_v1 to subset of honest nodes, block_v2 to others\n5. Continue building DAG for several rounds (each node builds on their view)\n6. Trigger commit on each node independently\n7. Linearize committed blocks from each node's perspective\n8. Assert: all honest nodes produce identical linearized sequences\n9. Assert: both equivocating blocks should not be committed simultaneously\n10. If assertions fail: safety violation confirmed\n",
+  "discovered_in_repo": "sui",
+  "discovery_date": "2026-01-25T10:34:46.182255",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

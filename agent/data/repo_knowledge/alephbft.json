@@ -1,0 +1,205 @@
+{
+  "repo": "AlephBFT",
+  "language": "rust",
+  "last_updated": "2025-12-10T04:19:15.303086",
+  "package_name": null,
+  "module_path": null,
+  "test_structure": {
+    "test_dirs": [],
+    "test_pattern": "*_test.go",
+    "main_test_files": [],
+    "test_framework": null
+  },
+  "coding_style": {
+    "naming_convention": "TestXxx",
+    "setup_pattern": null,
+    "teardown_pattern": null,
+    "assertion_style": null,
+    "common_imports": [],
+    "error_handling_style": null
+  },
+  "helper_functions": [
+    {
+      "name": "spawn_honest_member",
+      "file": "consensus/src/testing/mod.rs",
+      "purpose": "Spawns an honest AlephBFT consensus member wired to a mock network and returns channels/handles for observing finalization and controlling shutdown in tests.",
+      "signature": "pub fn spawn_honest_member(spawner: Spawner, node_index: NodeIndex, n_members: NodeCount, units: Vec<u8>, data_provider: DataProvider, network: impl 'static + NetworkT<NetworkData>) -> HonestMember",
+      "parameters": [],
+      "usage_example": "let HonestMember { finalization_rx, exit_tx, handle, .. } = spawn_honest_member(spawner, ix, n_members, vec![], DataProvider::new(), network);",
+      "returns": "HonestMember struct containing finalization_rx (UnboundedReceiver<Data>), saved_state (Arc<Mutex<Vec<u8>>>), exit_tx (oneshot::Sender<()>), and handle (TaskHandle)."
+    }
+  ],
+  "fault_injection": [],
+  "key_types": [],
+  "test_templates": {},
+  "setup_boilerplate": null,
+  "lessons_learned": [
+    {
+      "issue": "Missing SpawnHandle trait import when using mock::Spawner::spawn in new test module",
+      "solution": "Imported aleph_bft_types::SpawnHandle in the new consensus/src/testing/equivocation_partition_alert_delay.rs module so that the Spawner type implements the SpawnHandle trait and exposes spawn/spawn_essential methods.",
+      "timestamp": "2025-12-08T16:56:11.428015",
+      "related_files": [],
+      "error_pattern": "no method named `spawn` found for struct `Spawner` in the current scope"
+    },
+    {
+      "issue": "Moved value out of mutable reference when iterating over Vec of (NodeIndex, UnboundedReceiver)",
+      "solution": "When iterating over a Vec of (NodeIndex, UnboundedReceiver) without consuming it, iterate by mutable reference without moving the inner receiver; changed `for (ix, mut rx) in batch_rxs.iter_mut()` to `for (ix, rx) in batch_rxs.iter_mut()` and used rx by &mut binding.",
+      "timestamp": "2025-12-08T16:56:11.430221",
+      "related_files": [],
+      "error_pattern": "cannot move out of a mutable reference"
+    },
+    {
+      "issue": "Attempted to use the aleph_bft_crypto crate directly inside aleph-bft tests, causing unresolved import errors",
+      "solution": "Instead of importing aleph_bft_crypto directly, use the re-exports provided by aleph_bft_types and aleph_bft_rmc. For RMC tests, use aleph_bft_rmc::Handler and aleph_bft_crypto types via aleph_bft_rmc or aleph_bft_types, or simplify tests to avoid directly depending on aleph_bft_crypto when writing consensus crate tests.",
+      "timestamp": "2025-12-08T17:39:05.662100",
+      "related_files": [],
+      "error_pattern": "use of undeclared crate or module `aleph_bft_crypto`"
+    },
+    {
+      "issue": "New consensus tests failed to compile due to (1) moving UnboundedReceiver out of &mut Vec iterator and (2) constructing NodeIndex from u32 instead of usize",
+      "solution": "(1) When iterating over Vec<(NodeIndex, UnboundedReceiver<T>)> with iter_mut, bind the receiver by reference (for (ix, ref mut rx) in batch_rxs.iter_mut()) so the receiver is not moved out of the collection. (2) NodeIndex is a tuple struct over usize, so use the usize loop index directly (NodeIndex(i)) or convert explicitly to usize instead of using a u32 cast (NodeIndex(i as usize)).",
+      "timestamp": "2025-12-08T20:06:58.565465",
+      "related_files": [],
+      "error_pattern": "(E0507|E0308).*UnboundedReceiver|NodeIndex"
+    },
+    {
+      "issue": "Test module forged_future_level_unit_stalls_dag_progress.rs failed to compile due to missing Network trait in scope when calling network.send(...) on mock Network type.",
+      "solution": "Updated the test module to import the Network trait from aleph_bft_types (via crate prelude) by adding `Network as NetworkT` to the use list and using the existing `Network` alias from crate::testing. This ensures the NetworkT trait is in scope for the mock Network type so that send/next_event methods are available.",
+      "timestamp": "2025-12-08T22:41:50.940694",
+      "related_files": [],
+      "error_pattern": "no method named `send` found for struct `Network` in the current scope"
+    },
+    {
+      "issue": "Running a specific test inside the aleph-bft (consensus) crate from the workspace root",
+      "solution": "Use `cargo test -p aleph-bft <test_name> -- --nocapture` instead of `cargo test -p consensus` or `cargo test -p aleph-bft --test consensus`. The package name is `aleph-bft`, not `consensus`, and consensus tests are regular unit tests inside the crate, so you address them by their function name or module path rather than a separate test target.",
+      "timestamp": "2025-12-09T16:31:03.039425",
+      "related_files": [],
+      "error_pattern": "no test target named `consensus`|package ID specification `consensus` did not match any packages"
+    },
+    {
+      "issue": "New concurrent equivocation race test panicked due to timing out while waiting for both fork variants to be observed by the network hook.",
+      "solution": "Adjusted test design to ensure the malicious equivocating creator actually produces and sends both fork variants on the network, and relaxed reliance on strict timeout-based waiting. Specifically, we reused the existing malicious member pattern from other equivocation tests (iteration7/9) and ensured that the forking round and parent selection allow unit creation to reach that round, rather than assuming it happens by a fixed time.",
+      "timestamp": "2025-12-09T16:48:22.304987",
+      "related_files": [],
+      "error_pattern": "Timed out waiting for both fork variants to be observed by the network hook"
+    },
+    {
+      "issue": "New consensus test for non-deterministic timing-unit tie-break needed imports and module wiring consistent with existing AlephBFT tests.",
+      "solution": "Copied the import pattern and malicious-member harness structure from existing equivocation tests (e.g., alephbft_iter10_s1_equivocating_unit_double_finalize and concurrent_equivocation_race_divergent_dag_views). Added the new test module file under consensus/src/testing with the same use list and helper types (NetworkData, Network, Spawner, Router, etc.), and registered it in consensus/src/testing/mod.rs. Then invoked `cargo test -p aleph-bft <test_name> -- --nocapture` to compile and run just this scenario.",
+      "timestamp": "2025-12-09T17:25:46.530610",
+      "related_files": [],
+      "error_pattern": "alephbft_iter10_s4_non_deterministic_timing_unit_tie_break"
+    },
+    {
+      "issue": "Attempted to decode UncheckedSignedUnit from backup bytes in a new test but got `no function or associated item named decode` error",
+      "solution": "Import the `Decode` trait from the same codec crate used elsewhere in the repository (here `use codec::Decode;`) and, for clarity, introduce a type alias for the concrete UncheckedSignedUnit type. Then call `TestUncheckedUnit::decode(&mut input)` in the decode loop, mirroring the pattern used in consensus/src/backup/loader.rs tests.",
+      "timestamp": "2025-12-09T17:42:29.269401",
+      "related_files": [],
+      "error_pattern": "no function or associated item named `decode` found for struct `UncheckedSigned`"
+    },
+    {
+      "issue": "New late forker pruning race test initially caused overall `cargo test` to time out when run without timeouts on finalization receives.",
+      "solution": "Bounded the number of batches collected per phase and wrapped each `finalization_rx.next()` await in `tokio::time::timeout` with a per-batch limit. This prevents the test from hanging indefinitely if the protocol stalls and allows the scenario to complete within CI time limits.",
+      "timestamp": "2025-12-09T18:16:34.932228",
+      "related_files": [],
+      "error_pattern": "Command timed out after 300s running `cargo test -p aleph-bft late_forker_pruning_leads_to_divergent_orders_safety"
+    },
+    {
+      "issue": "Async helper reconnect_node in new consensus test returned default unit `()` causing mismatched types error",
+      "solution": "The reconnect_node helper was initially written without an explicit return expression, so Rust inferred the default unit `()` return type. Calling spawn_honest_node inside reconnect_node was wrapped in an unnecessary `Ok(...)`, producing a `Result` where `()` was expected. Fix by removing `Ok(...)` and letting the async function return `(NodeIndex, NodeData)` directly, matching its signature. In Rust async fns, the last expression without a semicolon is the return value.",
+      "timestamp": "2025-12-09T18:55:50.420587",
+      "related_files": [],
+      "error_pattern": "expected `\\(NodeIndex, NodeData\\)` because of return type, found enum `Result`|expected `\\(.*\\)` because of default return type"
+    },
+    {
+      "issue": "Tests used ControlHash::new_from_hashes in several new malicious-member scenarios, but ControlHash in this repository exposes only ControlHash::new(NodeMap<(Hash, Round)>)",
+      "solution": "Replaced ControlHash::<Hasher64>::new_from_hashes(parents) with explicit construction of a NodeMap<(Hash, Round)> where each parent hash from the Vec<Hash> is paired with round-1 and then passed to ControlHash::<Hasher64>::new(&node_with_parents). This matches the API defined in consensus/src/units/control_hash.rs and fixes E0599 compile errors.",
+      "timestamp": "2025-12-09T20:44:38.241248",
+      "related_files": [],
+      "error_pattern": "new_from_hashes\\(\"?\\)?"
+    },
+    {
+      "issue": "Missing NodeMap import in new malicious-member consensus tests caused E0433 `use of undeclared type NodeMap` when constructing control hashes.",
+      "solution": "Mirror existing tests that use ControlHash::new with NodeMap by importing `NodeMap` from the crate prelude at the top of the module: `use crate::NodeMap;`. Then build the NodeMap with parent hashes and rounds before constructing the ControlHash, following patterns in iteration3_scenario2_level_targeted_equivocation_partitioned_duplicates.rs and equivocator_resurrection_partial_alert_persistence.rs.",
+      "timestamp": "2025-12-09T21:59:28.175056",
+      "related_files": [],
+      "error_pattern": "use of undeclared type `NodeMap`"
+    },
+    {
+      "issue": "Incorrect invocation of `cargo test` with `--test-threads` caused Cargo to treat it as an unexpected argument",
+      "solution": "When running a single Rust test with a custom `--test-threads` value, you must separate Cargo flags from test binary flags using `--`. For example: `cargo test <TESTNAME> -- --test-threads=1`. This ensures Cargo passes `--test-threads` to the test harness instead of trying to parse it itself.",
+      "timestamp": "2025-12-10T01:21:55.751086",
+      "related_files": [],
+      "error_pattern": "unexpected argument '--test-threads'"
+    },
+    {
+      "issue": "Overwrote consensus/src/testing/mod.rs and removed spawn_honest_member / HonestMember definitions, causing E0432 unresolved imports for many existing tests",
+      "solution": "Restored testing::mod.rs to match the original structure with NetworkData alias and helper functions, and reintroduced spawn_honest_member and HonestMember definitions by copying their implementation from previous repository state. Future changes to testing modules should be additive (new mod or helpers) and avoid redefining or replacing existing exports.",
+      "timestamp": "2025-12-10T01:41:29.897690",
+      "related_files": [],
+      "error_pattern": "E0432: unresolved imports `crate::testing::spawn_honest_member`, `crate::testing::HonestMember`"
+    },
+    {
+      "issue": "testing::spawn_honest_member no longer compatible with updated BackupLoader and Saver interfaces, causing E0061 (wrong args), E0599 (no Saver::data), and AsyncRead/AsyncWrite bound errors for LocalIO",
+      "solution": "Reimplemented testing::spawn_honest_member to wrap the real BackupSaver/BackupLoader types from consensus::backup around the mock Saver/Loader from aleph_bft_mock. The new helper constructs BackupSaver with unbounded channels and a MockSaver backed by Arc<Mutex<Vec<u8>>> (exposed as HonestMember.saved_state for tests), and BackupLoader with a MockLoader cursor plus proper NodeIndex and SessionId arguments. LocalIO::new is then called with data_provider, FinalizationHandler, the BackupSaver as AsyncWrite, and the BackupLoader as AsyncRead. This restores correct trait bounds and type usage while keeping tests able to inspect backup bytes.",
+      "timestamp": "2025-12-10T02:01:09.242290",
+      "related_files": [],
+      "error_pattern": "BackupLoader::new\\(Loader::new\\(backup_bytes\\)\\)|no method named `data` found for struct `Saver`|the trait bound `loader::BackupLoader<.*>: futures::AsyncWrite` is not satisfied"
+    },
+    {
+      "issue": "Added incorrect new mod in consensus/src/testing/mod.rs (iteration8_equivocating_creator_dag_fork_safety) causing E0583 file not found",
+      "solution": "Rewrote consensus/src/testing/mod.rs to remove the non-existent `mod iteration8_equivocating_creator_dag_fork_safety;` and keep only modules that actually exist in the repository. This restores compilation of the testing module index.",
+      "timestamp": "2025-12-10T02:02:10.861534",
+      "related_files": [],
+      "error_pattern": "file not found for module `iteration8_equivocating_creator_dag_fork_safety`"
+    },
+    {
+      "issue": "Misunderstood generics and trait aliases when reworking consensus::testing::mod.rs to use aleph_bft types directly, causing E0782 (expected a type, found a trait) and E0277 (LocalIO bound as MultiKeychain) and wrong run_session argument ordering errors",
+      "solution": "Reverted testing::mod.rs to the original version from the repository that uses aleph_bft_mock::{Data, DataProvider, FinalizationHandler, Hasher64, Keychain, Loader, Saver} and crate::NetworkData alias. The correct spawn_honest_member should construct a Loader from backup_bytes, a Saver via Saver::new(), take saved_state = saver.data().clone(), build LocalIO::new(data_provider, fh, saver, loader), and call run_session(config, keychain, network, local_io, Terminator::create_root(exit_rx, \"AlephBFT\")); matching the original consensus::run_session signature. This avoids trying to use aleph_bft::Data/Signature traits directly in test wiring and keeps mock types confined to the mock crate.",
+      "timestamp": "2025-12-10T02:03:15.220622",
+      "related_files": [],
+      "error_pattern": "expected a type, found a trait.*NetworkDataT<Hasher64, Data, Signature, PartialMultisignature>|the trait bound `LocalIO<.*>: MultiKeychain` is not satisfied|run_session\\(config, keychain, network, local_io, spawner\\)"
+    },
+    {
+      "issue": "Running new test caused unrelated compile error in existing equivocation_amnesia_gc_divergent_orders.rs: moved value `node.reconnect_tx` used after `node.kill().await` (NodeData::kill consumes self).",
+      "solution": "Fix the move semantics by extracting reconnect_tx from each NodeData before calling kill. In the loop over honest_nodes, first destructure or clone the reconnect_tx into a temporary map, then call node.kill().await, and finally use the saved reconnect_tx value when calling reconnect_node. This preserves ownership rules and avoids using moved fields after self-consuming methods.",
+      "timestamp": "2025-12-10T02:52:40.956762",
+      "related_files": [],
+      "error_pattern": "use of moved value: `node.reconnect_tx`"
+    },
+    {
+      "issue": "New split-context threshold coin test timed out waiting for both fork variants to be observed by the network hook",
+      "solution": "Mirrored the pattern from existing delayed_equivocation_timing_unit_coin_divergence.rs: ensure the malicious equivocator actually reaches the designated coin/timing round by using the same parent-selection and round-advancement logic, and kept the 30s timeout which is sufficient for the DAG to grow to round 3 under normal parameters. The timeout panic here indicates the scenario did not materialize (no forks created) rather than a protocol bug; in this specific case, reusing the proven malicious creator logic and hook structure from the existing test fixed earlier similar issues, so further timeouts would suggest environment slowness or misconfigured round index rather than consensus behaviour.",
+      "timestamp": "2025-12-10T03:25:19.128724",
+      "related_files": [],
+      "error_pattern": "Timed out waiting for both .*coin fork variants to be observed by the network hook"
+    },
+    {
+      "issue": "Added new fork_resurrection_after_equivocation_pruning_race test module without registering it in consensus::testing::mod.rs, causing it not to compile or run when referenced by name.",
+      "solution": "Updated consensus/src/testing/mod.rs to include `mod fork_resurrection_after_equivocation_pruning_race;` at the bottom of the module list so Cargo can discover and compile the new test. This matches how other scenario tests are registered.",
+      "timestamp": "2025-12-10T03:33:32.341236",
+      "related_files": [],
+      "error_pattern": "unresolved name `fork_resurrection_after_equivocation_pruning_race_safety`|no tests found matching `fork_resurrection_after_equivocation_pruning_race_safety`"
+    },
+    {
+      "issue": "Unresolved import crate::testing::gen_config after modifying consensus/src/testing/mod.rs when adding a new test module",
+      "solution": "Restored a compatible gen_config helper in consensus/src/testing/mod.rs with signature `pub fn gen_config(node_ix: NodeIndex, n_members: NodeCount, delay_config: DelayConfig) -> Config` that wraps create_config in the same way as the original repository. This ensures existing tests like creation.rs and equivocation_amnesia_gc_divergent_orders.rs can still import testing::gen_config. When extending testing::mod.rs, always preserve existing helpers (gen_config, gen_delay_config, spawn_honest_member) and their signatures.",
+      "timestamp": "2025-12-10T04:19:15.303063",
+      "related_files": [],
+      "error_pattern": "unresolved import `crate::testing::gen_config`"
+    }
+  ],
+  "notes": [
+    "AlephBFT is an asynchronous Byzantine fault tolerant consensus protocol",
+    "Designed for no bounds on message-delivery delays",
+    "Uses DAG-based consensus structure",
+    "Testing module in consensus/src/testing/ has pre-built scenarios",
+    "Use aleph_bft_mock crate for network simulation",
+    "Serial tests may need #[serial_test::serial] attribute",
+    "Requires tokio runtime for async operations"
+  ],
+  "build_command": null,
+  "test_command": null,
+  "test_timeout": null,
+  "file_hashes": {}
+}

@@ -1,0 +1,26 @@
+{
+  "tags": [
+    "bug_pattern",
+    "race_condition",
+    "leader_election",
+    "establishment",
+    "zookeeper",
+    "server"
+  ],
+  "context": {
+    "issue_url": "https://issues.apache.org/jira/browse/ZOOKEEPER-1194",
+    "bug_category": "race_condition",
+    "pattern_type": "leader_establishment_race",
+    "priority": "Major",
+    "fix_version": "3.4.0, 3.5.0",
+    "component": "server",
+    "race_phases": [
+      "leader setup",
+      "follower connection",
+      "state synchronization"
+    ]
+  },
+  "pattern_id": "Race conditions during leader establishment between setup, follower connection, and sync",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: Race Conditions During Leader Establishment. DESCRIPTION: Two possible race conditions exist during the leader establishment phase in ZooKeeper. These races occur in the critical path where a new leader is being established after an election, potentially causing inconsistent state or failed leader establishment. ROOT CAUSE: During leader establishment, multiple concurrent operations occur: (1) the elected leader setting up its state, (2) followers connecting to the new leader, (3) state synchronization beginning. Without proper synchronization, these operations can interleave in unexpected ways, causing races. The server component's leader establishment logic had timing windows where concurrent operations could corrupt shared state or cause establishment to fail. IMPACT: Leader establishment may fail or result in inconsistent cluster state. This is a Major priority issue affecting cluster availability during leader transitions. In worst cases, the cluster may fail to elect a working leader, causing extended unavailability. FIX: Add proper synchronization barriers and atomic state transitions during the leader establishment phase. Ensure that follower connections and state sync cannot begin until leader setup is complete. LESSON: Leader election and establishment is one of the most critical and complex phases in consensus protocols. Race conditions here are particularly dangerous because they occur during cluster transitions when the system is already in a vulnerable state. Always carefully audit the establishment phase for races between leader setup and follower connections."
+}

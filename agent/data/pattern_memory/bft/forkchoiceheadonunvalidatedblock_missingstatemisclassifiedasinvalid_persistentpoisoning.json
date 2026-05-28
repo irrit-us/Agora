@@ -1,0 +1,19 @@
+{
+  "pattern_id": "ForkchoiceHeadOnUnvalidatedBlock_MissingStateMisclassifiedAsInvalid_PersistentPoisoning",
+  "protocol_type": "bft",
+  "description": "Some implementations allow forkchoice head-setting to trigger implicit execution/verification/canonicalization of a block that is only \u201cknown\u201d (header/body present) but not \u201cvalidated\u201d. When local state is missing, the execution/verification fails. If the implementation:",
+  "fault_type": "crash_recovery + byzantine_or_buggy_driver (misordered API calls / selective scheduling)",
+  "bug_category": "agreement (primary) / liveness (secondary)",
+  "trigger_condition": "- Node has block header/body for candidate head `C` (e.g., via DB pre-seed, sync path, or out-of-order delivery) but has **not** validated/executed it via the normal \u201cpayload import\u201d API.",
+  "test_template": "1. Setup:",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T03:18:28.631221",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 18506924,
+    "api_cost": 10.76836495
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

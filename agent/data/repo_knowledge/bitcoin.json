@@ -1,0 +1,58 @@
+{
+  "repo": "bitcoin",
+  "language": "cpp",
+  "last_updated": "2026-03-26T22:50:35.370254",
+  "package_name": null,
+  "module_path": null,
+  "test_structure": {
+    "test_dirs": [],
+    "test_pattern": "*_test.go",
+    "main_test_files": [],
+    "test_framework": null
+  },
+  "coding_style": {
+    "naming_convention": "TestXxx",
+    "setup_pattern": null,
+    "teardown_pattern": null,
+    "assertion_style": null,
+    "common_imports": [],
+    "error_handling_style": null
+  },
+  "helper_functions": [],
+  "fault_injection": [],
+  "key_types": [],
+  "test_templates": {},
+  "setup_boilerplate": null,
+  "lessons_learned": [
+    {
+      "issue": "ProcessNewBlock function call had incorrect signature with 5 arguments instead of 4",
+      "solution": "Fixed ProcessNewBlock calls by using the correct signature: ProcessNewBlock(const std::shared_ptr<const CBlock>& block, bool force_processing, bool min_pow_checked, bool* new_block). Also needed to wrap CBlock in std::make_shared<CBlock>() and remove the BlockValidationState parameter.",
+      "timestamp": "2026-03-26T22:50:29.747692",
+      "related_files": [],
+      "error_pattern": "too many arguments to function call, expected 4, have 5"
+    },
+    {
+      "issue": "CheckProofOfWork function was not declared because pow.h was not included",
+      "solution": "Added #include <pow.h> to make CheckProofOfWork function available",
+      "timestamp": "2026-03-26T22:50:35.370101",
+      "related_files": [],
+      "error_pattern": "use of undeclared identifier 'CheckProofOfWork'"
+    }
+  ],
+  "notes": [
+    "Bitcoin uses Nakamoto consensus (PoW-based probabilistic BFT)",
+    "Fault tolerance: < 50% of total hashpower can be adversarial",
+    "Consensus-critical code: src/consensus/ (rules), src/pow.cpp (PoW), src/validation.cpp (block/tx validation), src/script/ (script interpreter)",
+    "Test fixtures: BasicTestingSetup -> ChainTestingSetup -> TestingSetup -> TestChain100Setup",
+    "TestChain100Setup provides 100 pre-mined blocks with spendable coinbase via m_coinbase_txns",
+    "Block validation pipeline: CheckBlock() -> AcceptBlock() -> ConnectBlock()",
+    "Difficulty adjustment occurs every 2016 blocks (params.DifficultyAdjustmentInterval())",
+    "UTXO model: transactions consume UTXOs (inputs) and create new UTXOs (outputs)",
+    "Script validation uses a stack-based interpreter in src/script/interpreter.cpp",
+    "Use regtest (ChainType::REGTEST) for testing: allows instant mining with minimal difficulty"
+  ],
+  "build_command": null,
+  "test_command": null,
+  "test_timeout": null,
+  "file_hashes": {}
+}

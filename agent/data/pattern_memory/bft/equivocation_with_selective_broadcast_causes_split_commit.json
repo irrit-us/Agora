@@ -1,0 +1,18 @@
+{
+  "pattern_id": "Equivocation with Selective Broadcast Causes Split Commit",
+  "protocol_type": "bft",
+  "description": "In DAG-based consensus protocols like Mysticeti, when a Byzantine node creates two equivocating blocks (same round and author, different content/digest) and selectively broadcasts them to different honest nodes, the protocol can fail to prevent split commits. Different honest nodes, operating on their local DAG views, independently commit different blocks at the same slot, leading to divergent linearized transaction sequences.\n\nThe vulnerability occurs because:\n1. Each honest node's committer and linearizer operates on its local DAG state\n2. Selective broadcast creates different DAG views across honest nodes\n3. Equivocation detection within a single node prevents double-commits in that node's view\n4. However, there's no cross-node coordination to ensure all nodes commit the same block when equivocation exists\n5. The linearizer processes blocks based on local DAG structure without global consistency checks\n\nThis is distinct from simple equivocation detection - the protocol may correctly detect that equivocation occurred, but by the time detection happens, different nodes have already committed different blocks.\n\nTesting approach:\n1. Create separate DAG states for different honest nodes (simulating their views)\n2. Byzantine node creates two equivocating blocks with different transactions\n3. Selectively add Block_X to some nodes' DAG states, Block_Y to others\n4. Build valid DAG chains on top of each equivocating block\n5. Run committer and linearizer independently for each view\n6. Assert that all nodes commit the same block (or none) at the equivocation slot\n7. Assert that linearized sequences are identical across all nodes",
+  "fault_type": "byzantine_equivocation_with_selective_broadcast",
+  "bug_category": "safety",
+  "trigger_condition": "Byzantine node creates equivocating blocks AND selectively broadcasts them to different honest nodes AND honest nodes commit before detecting the equivocation",
+  "test_template": "```rust\n// Create separate DAG states for different honest node views\nlet dag_state_group1 = Arc::new(RwLock::new(DagState::new(context.clone(), store1)));\nlet dag_state_group2 = Arc::new(RwLock::new(DagState::new(context.clone(), store2)));\n\n// Byzantine node creates equivocating blocks\nlet block_x = create_block(round, byzantine_author, transactions_x);\nlet block_y = create_block(round, byzantine_author, transactions_y);\nassert_eq!(block_x.slot(), block_y.slot());\nassert_ne!(block_x.digest(), block_y.digest());\n\n// Selective broadcast\ndag_state_group1.accept_block(block_x);\ndag_state_group2.accept_block(block_y);\n\n// Build DAG chains and commit independently\nlet committed_group1 = commit_and_linearize(dag_state_group1);\nlet committed_group2 = commit_and_linearize(dag_state_group2);\n\n// Safety check: sequences must be identical\nassert_eq!(committed_group1, committed_group2, \"Split commit detected!\");\n```",
+  "discovered_in_repo": "sui",
+  "discovery_date": "2026-01-25T10:21:44.443656",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [
+    "avalanchego"
+  ],
+  "confirmed_in_repos": []
+}

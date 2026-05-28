@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Finality Monotonicity Violation",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern occurs in distributed consensus systems that separate consensus logic from state execution (e.g., Ethereum's consensus-execution split, Cosmos SDK app-chain architecture, or any system with pluggable consensus). The core issue is the failure to enforce monotonicity of finality commitments across the interface boundary between consensus and execution layers.",
+  "fault_type": "byzantine_consensus_client",
+  "bug_category": "safety",
+  "trigger_condition": "A Byzantine or compromised consensus client sends state update messages with finality markers that point to earlier blockchain heights than previously confirmed finalized blocks, and the execution/application layer accepts these without validation.",
+  "test_template": "```",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T15:32:47.179710",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 1221416,
+    "api_cost": 4.155456
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

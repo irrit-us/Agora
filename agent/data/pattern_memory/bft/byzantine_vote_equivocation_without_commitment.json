@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Byzantine Vote Equivocation Without Commitment",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern occurs in consensus protocols that implement voting or polling mechanisms without enforcing vote consistency across the network. The core issue is the absence of a cryptographic commitment that binds a validator to a single vote per round that is verifiable by all participants.",
+  "fault_type": "byzantine_equivocation",
+  "bug_category": "safety",
+  "trigger_condition": "- Consensus protocol uses polling/voting mechanism where validators respond to queries",
+  "test_template": "```",
+  "discovered_in_repo": "avalanchego",
+  "discovery_date": "2026-03-28T15:28:22.546898",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 3752819,
+    "api_cost": 12.231476999999998
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

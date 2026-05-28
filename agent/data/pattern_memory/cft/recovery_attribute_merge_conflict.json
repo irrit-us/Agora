@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Recovery Attribute Merge Conflict",
+  "protocol_type": "cft",
+  "description": "This pattern occurs in leaderless or multi-leader consensus protocols (like EPaxos or Caesar) that support Fast Paths. During recovery, a new leader polls replicas for the state of an instance. If replicas return conflicting attributes (e.g., Replica A has `Deps=[]`, Replica B has `Deps=[X]`), the recovery leader incorrectly merges these attributes (e.g., taking the Union) and commits the result. This violates safety if the \"smaller\" attribute set was already committed by the original leader on the Fast Path. The flaw is assuming that merging constraints is always safe, ignoring that the original leader might have committed a specific, less constrained value.",
+  "fault_type": "crash_recovery",
+  "bug_category": "agreement",
+  "trigger_condition": "Leader crashes after a Fast Path commit; Recovery Leader observes conflicting PreAccepted states (different dependencies or sequence numbers) from survivors.",
+  "test_template": "1. **Setup:** Initialize a cluster of N=3 replicas.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-27T02:51:09.802698",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 5227300,
+    "api_cost": 4.146137799999999
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

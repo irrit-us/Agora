@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Non-Monotonic Safety Marker Progression",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern occurs when a distributed system uses progressive safety markers (safe blocks, checkpoints, finalized states) to provide guarantees about state immutability or reorg protection, but fails to validate that these markers advance monotonically through the state space without gaps.",
+  "fault_type": "byzantine_consensus_client",
+  "bug_category": "safety",
+  "trigger_condition": "A Byzantine consensus layer client sends state update messages (e.g., safe block, checkpoint, finalization markers) that skip intermediate states without proper validation at the execution/application layer boundary.",
+  "test_template": "```",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T14:46:23.556873",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 4836037,
+    "api_cost": 16.427079000000003
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

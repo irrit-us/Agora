@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Inconsistent Recovery of Dependency Sets",
+  "protocol_type": "cft",
+  "description": "In leaderless or DAG-based consensus protocols (like EPaxos, Caesar, or Mencius), commands are ordered based on dependency graphs. When a leader crashes, a recovery coordinator must finalize the dependencies for pending commands.",
+  "fault_type": "Crash Recovery",
+  "bug_category": "liveness",
+  "trigger_condition": "Leader crash after partial replication of conflicting dependency sets.",
+  "test_template": "1. **Setup**: Initialize a cluster of N=3 replicas.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-27T02:45:08.511297",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 5029948,
+    "api_cost": 3.7259097999999997
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

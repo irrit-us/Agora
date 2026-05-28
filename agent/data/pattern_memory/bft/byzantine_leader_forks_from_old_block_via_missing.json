@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Byzantine Leader Forks from Old Block via Missing HighQC Check in VoteRule",
+  "protocol_type": "bft",
+  "description": "The VoteRule in ChainedHotStuff only validates that a proposal either (1) has QC.view > bLock.view (liveness condition) or (2) extends from bLock (safety condition). It does NOT verify that the proposal extends from the block pointed to by HighQC. This allows a Byzantine leader to fork from any old block in the chain as long as its QC view is greater than bLock view.\n\nAttack Scenario:\n1. Honest chain: Genesis \u2192 B1 \u2192 B2 \u2192 B3, all nodes have HighQC = QC3 (pointing to B3)\n2. Byzantine leader proposes B4' with parent=B1 and QC=QC1 (forking from B1, ignoring B2 and B3)\n3. VoteRule checks: QC1.view (1) > bLock.view (0) \u2192 TRUE (liveness condition passes)\n4. Honest nodes vote for B4' even though it doesn't extend from HighQC block (B3)\n5. Byzantine leader can extend the fork: B4' \u2192 B5' \u2192 B6', creating a 3-chain\n6. The forked blocks can potentially be committed, violating safety\n\nRoot Cause:\nThe VoteRule should enforce that proposals extend from the HighQC block to prevent forking from old blocks. The current implementation only checks bLock, which is insufficient.\n\nHow to Test:\n1. Create an honest chain with multiple blocks and set HighQC to the latest block\n2. Have a Byzantine leader propose a block that forks from an earlier block (not the HighQC block)\n3. Verify that Voter.Verify() rejects the proposal\n4. Check that honest nodes do not vote for the forked block\n5. Test if the fork can be extended across multiple views\n6. Verify that forked blocks are never committed\n\nExpected Fix:\nAdd a check in VoteRule to ensure the proposal extends from the block pointed to by HighQC, or that the proposal's QC is at least as recent as HighQC.",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "Byzantine leader proposes a block that forks from an old block (not extending from HighQC) while having a valid QC with view > bLock.view",
+  "test_template": "1. Setup: Create n nodes with f Byzantine nodes\n2. Build honest chain: Genesis \u2192 B1 \u2192 ... \u2192 Bk\n3. Set all honest nodes' HighQC to QCk (pointing to Bk)\n4. Byzantine leader proposes B(k+1)' with parent=Bi where i < k (fork from old block)\n5. Assert: Voter.Verify() should reject the proposal\n6. Assert: Honest nodes should not vote for B(k+1)'\n7. If bug exists: Byzantine leader can extend fork across multiple views\n8. Assert: Forked blocks should never be committed\n9. Check for safety violation: divergent committed states among honest nodes",
+  "discovered_in_repo": "hotstuff",
+  "discovery_date": "2026-01-25T10:51:42.256974",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

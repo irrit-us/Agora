@@ -1,0 +1,16 @@
+{
+  "pattern_id": "OOM from unbounded missing_blocks map growth when processing blocks with many missing ancestors",
+  "protocol_type": "bft",
+  "bug_category": "liveness",
+  "description": "BlockManager missing_blocks map can grow unbounded leading to OOM when processing blocks with many missing ancestors",
+  "fault_type": "resource_exhaustion",
+  "trigger_condition": "Byzantine validator sends blocks referencing many non-existent ancestor blocks. Each missing ancestor is added to missing_blocks map without bounds checking.",
+  "root_cause": "No limit on the size of missing_blocks map. Attacker can exhaust memory by referencing arbitrary non-existent blocks.",
+  "fix_approach": "Add bounds checking on missing_blocks size. Reject blocks that would cause excessive missing block tracking.",
+  "confirmed_in_repos": [
+    "sui"
+  ],
+  "discovered_at": "2025-12-01",
+  "source_issue": "https://github.com/MystenLabs/sui/issues/24473",
+  "source_pr": "https://github.com/MystenLabs/sui/pull/24474"
+}

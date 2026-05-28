@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Finality Ancestry Invariant Bypass",
+  "protocol_type": "bft",
+  "description": "In modular blockchain architectures, consensus and execution are often decoupled. The consensus layer is responsible for determining the canonical chain and finalizing blocks, while the execution layer processes transactions and maintains state. A critical vulnerability arises when the execution layer blindly trusts finality updates from the consensus layer without enforcing local safety invariants. If the execution layer does not verify that a new canonical head or a new finalized block descends from the *already finalized* block, a Byzantine, compromised, or buggy consensus client can force the execution layer to revert finalized state. This breaks the absolute finality guarantee of BFT systems.",
+  "fault_type": "byzantine_consensus_client",
+  "bug_category": "safety",
+  "trigger_condition": "The execution layer or state machine receives a fork choice/finality update from an external driver (e.g., consensus client) where the newly proposed head or finalized block does not cryptographically descend from the previously established finalized block.",
+  "test_template": "1. **Setup**: Initialize the target execution node and sync it to a common base block `A`.",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T11:15:47.311307",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 1858386,
+    "api_cost": 2.2938646
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

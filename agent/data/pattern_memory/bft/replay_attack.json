@@ -1,0 +1,23 @@
+{
+  "tags": [
+    "bug_pattern",
+    "replay_attack",
+    "state_recovery",
+    "bft",
+    "security",
+    "session_tracking"
+  ],
+  "context": {
+    "issue_url": "https://github.com/bft-smart/library/issues/63",
+    "bug_category": "security",
+    "pattern_type": "incomplete_state_recovery",
+    "confirmed_by": "maintainer (jcs47)",
+    "attack_type": "replay attack after recovery",
+    "vulnerable_state": "lastMessageReceived per client/session",
+    "theoretical_assumption": "fail-stop model (no recovery)",
+    "practical_reality": "replicas can recover"
+  },
+  "pattern_id": "Incomplete state recovery enables replay attack - lastMessageReceived not persisted across restarts",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Incomplete State Recovery Enables Replay Attack. DESCRIPTION: The lastMessageReceived variable (used to prevent replay attacks by tracking client sequence numbers) is never synchronized through messages or log. When servers restart and recover from log, they restore application state but NOT the per-client/session last sequence IDs. This allows attackers to replay old requests after server restarts. ROOT CAUSE: The original paper assumes strict fail-stop model where crashed replicas never recover. However, the implementation allows replica recovery, creating a gap - recovered replicas lose track of which client requests were already processed. ATTACK SCENARIO: (1) Client sends request with session=42, seq=0, (2) Request processed successfully, (3) Same request rejected on retry (replay detection works), (4) Restart all servers sequentially - they recover log but not lastMessageReceived, (5) Replay same request - it succeeds because no server remembers it was processed, (6) Attacker can replay indefinitely after server restarts. IMPACT: Any request can be replayed after sufficient server restarts, causing duplicate state changes. FIX: Synchronize lastMessageReceived through state transfer or log it as part of recoverable state. Consider bloom filters for space-efficient storage of processed request identifiers. LESSON: When implementing recovery in BFT systems, audit ALL state that affects correctness - not just application state. Anti-replay state, session tracking, and protocol metadata must also be recovered. The gap between theoretical model (fail-stop) and practical implementation (recovery) often hides critical bugs."
+}

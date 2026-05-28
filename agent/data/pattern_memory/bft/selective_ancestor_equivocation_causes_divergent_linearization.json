@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Selective Ancestor Equivocation Causes Divergent Linearization",
+  "protocol_type": "bft",
+  "description": "In DAG-based consensus, a Byzantine validator can create equivocating blocks with strategically different ancestor sets and selectively broadcast them to partition honest nodes. When honest nodes independently commit and linearize blocks based on their divergent DAG views, they produce different transaction sequences, violating safety. The test shows that both equivocating blocks (B2_v1 with ancestors [B1, H1_1] and B2_v2 with ancestors [B1, H2_1, H3_1]) were committed by different nodes, causing H1 to commit transaction [2] while H2/H3 commit transaction [3] at the same position. The divergence cascades through subsequent rounds as each node builds on their own view.",
+  "fault_type": "byzantine_equivocation",
+  "bug_category": "safety",
+  "trigger_condition": "Byzantine node creates equivocating blocks at round R with different ancestor sets, selectively broadcasts them to partition honest nodes, causing divergent DAG views that lead to different commit sequences",
+  "test_template": "1. Create separate DagState instances for each honest node (to simulate independent views)\n2. Round 1: All validators create honest blocks\n3. Round 2: Byzantine node creates TWO equivocating blocks with different ancestors (e.g., B2_v1 refs [B1, H1_1], B2_v2 refs [B1, H2_1, H3_1])\n4. Selectively deliver: H1 sees B2_v1, H2/H3 see B2_v2\n5. Rounds 3+: Each honest node builds blocks based on their view\n6. Commit and linearize from each node's perspective\n7. Assert: All honest nodes produce identical linearized transaction sequences\n8. Assert: Both equivocating blocks should NOT be committed simultaneously\n9. Expected: Test should PASS (all nodes agree). If FAIL: safety violation detected",
+  "discovered_in_repo": "sui",
+  "discovery_date": "2026-01-25T11:02:06.189843",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Snapshot Invalidation By Recovery Divergence",
+  "protocol_type": "cft",
+  "description": "If a node takes a snapshot after Fast-Executing a command, and that command's dependencies are subsequently altered by a recovery leader (due to a conflict), the snapshot becomes invalid because it represents an execution history that is no longer possible in the global log. When the node recovers from the snapshot, it will apply subsequent commands on top of this invalid state, leading to permanent divergence. Specifically, the node has already executed CmdA (deps={}) and snapshotted it. The cluster later decides CmdA (deps={CmdB}). The node then learns CmdB and executes it, resulting in execution order A -> B, while the rest of the cluster executes B -> A.",
+  "fault_type": "crash_fault",
+  "bug_category": "safety",
+  "trigger_condition": "Fast execution followed by snapshot, followed by crash, followed by recovery that changes dependencies of the snapshotted command.",
+  "test_template": "1. Setup 3 replicas.\n2. R0 proposes CmdA, fast-commits and executes it (deps={}).\n3. R0 snapshots state (x=1) and truncates log.\n4. R0 crashes.\n5. R2 proposes CmdB.\n6. R1 recovers CmdA, sees conflict with CmdB, updates CmdA deps to {CmdB}.\n7. R1 executes CmdB -> CmdA (x=1).\n8. R0 restarts, loads snapshot (x=1).\n9. R0 learns CmdB, executes it (x=2).\n10. Assert divergence: R0.x != R1.x.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-24T16:00:10.440453",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

@@ -1,0 +1,223 @@
+# Protocol definitions for consensus testing
+# Add new protocols here as needed
+#
+# Path Resolution:
+#   - path: Relative path to repository (relative to project root)
+#   - canonical_name: Lowercase name used for file lookups (repo_knowledge, etc.)
+#                    If not specified, defaults to lowercase of protocol key
+#
+# Example:
+#   AlephBFT:
+#     path: ./AlephBFT
+#     canonical_name: alephbft  # Used for alephbft.json in repo_knowledge
+
+protocols:
+  # ============================================================
+  # CFT Protocols (Crash Fault Tolerant)
+  # ============================================================
+  
+  raft:
+    path: ./raft
+    type: cft
+    language: go
+    fault_tolerance: "(n-1)/2"
+    description: "etcd's Raft implementation"
+    test_pattern: "*_test.go"
+    test_command: "go test -v -run {test_name}"
+    
+  raft-rs:
+    path: ./raft-rs
+    type: cft
+    language: rust
+    fault_tolerance: "(n-1)/2"
+    description: "TiKV's Raft implementation in Rust"
+    test_pattern: "harness/tests/*.rs"
+    test_command: "cargo test -p harness {test_name} -- --nocapture"
+    
+  hashicorp-raft:
+    path: ./hashicorp-raft
+    type: cft
+    language: go
+    fault_tolerance: "(n-1)/2"
+    description: "HashiCorp's Raft implementation"
+    test_pattern: "*_test.go"
+    test_command: "go test -v -run {test_name}"
+    
+  dragonboat:
+    path: ./dragonboat
+    type: cft
+    language: go
+    fault_tolerance: "(n-1)/2"
+    description: "High-performance multi-group Raft implementation"
+    test_pattern: "*_test.go"
+    test_command: "go test -v -run {test_name}"
+    
+  efficient-epaxos:
+    path: ./efficient-epaxos
+    type: cft
+    language: go
+    fault_tolerance: "(n-1)/2"
+    description: "Efficient EPaxos implementation"
+    test_pattern: "*_test.go"
+    test_command: "go test -v -run {test_name}"
+    
+  ratis:
+    path: ./ratis
+    type: cft
+    language: java
+    fault_tolerance: "(n-1)/2"
+    description: "Apache Ratis - Java Raft implementation"
+    test_pattern: "**/*Test.java"
+    test_command: "mvn test -pl ratis-test -Dtest={test_name}"
+    
+  zookeeper:
+    path: ./zookeeper
+    type: cft
+    language: java
+    fault_tolerance: "(n-1)/2"
+    description: "Apache ZooKeeper (ZAB protocol)"
+    test_pattern: "**/*Test.java"
+    test_command: "mvn test -Dtest={test_name}"
+    issue_tracker:
+      type: jira
+      url: "https://issues.apache.org/jira/browse/ZOOKEEPER"
+      project_key: "ZOOKEEPER"
+
+  fabric:
+    path: ./fabric
+    type: cft
+    language: go
+    fault_tolerance: "(n-1)/2"
+    description: "Hyperledger Fabric (Raft-based ordering, also supports BFT via SmartBFT)"
+    test_pattern: "*_test.go"
+    test_command: "go test -v -run {test_name}"
+
+  # ============================================================
+  # BFT Protocols (Byzantine Fault Tolerant)
+  # ============================================================
+  
+  library:
+    path: ./library
+    type: bft
+    language: java
+    fault_tolerance: "(n-1)/3"
+    description: "BFT-SMaRt library"
+    test_pattern: "**/*Test.java"
+    test_command: "gradle test --tests {test_name}"
+    issue_tracker:
+      type: github
+      url: "https://github.com/bft-smart/library/issues"
+      
+  cometbft:
+    path: ./cometbft
+    type: bft
+    language: go
+    fault_tolerance: "(n-1)/3"
+    description: "CometBFT (formerly Tendermint)"
+    test_pattern: "*_test.go"
+    test_command: "go test -v -run {test_name}"
+    
+  hotstuff:
+    path: ./hotstuff
+    type: bft
+    language: go
+    fault_tolerance: "(n-1)/3"
+    description: "HotStuff BFT protocol"
+    test_pattern: "*_test.go"
+    test_command: "go test -v -run {test_name}"
+    
+  AlephBFT:
+    path: ./AlephBFT
+    canonical_name: alephbft  # Used for alephbft.json in repo_knowledge
+    type: bft
+    language: rust
+    fault_tolerance: "(n-1)/3"
+    description: "Asynchronous Byzantine fault tolerant consensus"
+    test_pattern: "consensus/src/testing/*.rs"
+    test_command: "cargo test -p aleph-bft {test_name} -- --nocapture"
+    
+  aptos-core:
+    path: ./aptos-core
+    type: bft
+    language: rust
+    fault_tolerance: "(n-1)/3"
+    description: "Aptos blockchain consensus (HotStuff variant)"
+    test_pattern: "consensus/src/**/*_test.rs"
+    test_command: "cargo test -p aptos-consensus {test_name} -- --nocapture"
+    
+  sui:
+    path: ./sui
+    type: bft
+    language: rust
+    fault_tolerance: "(n-1)/3"
+    description: "Sui blockchain consensus (Mysticeti DAG-based BFT)"
+    test_pattern: "consensus/core/src/tests/*.rs"
+    test_command: "cargo test -p consensus-core {test_name} -- --nocapture"
+
+  bitcoin:
+    path: ./bitcoin
+    type: bft
+    language: cpp
+    fault_tolerance: "< 50% hashpower"
+    description: "Bitcoin Core (Nakamoto consensus, PoW-based probabilistic BFT)"
+    test_pattern: "src/test/*_tests.cpp"
+    test_command: "cmake --build build --target test_bitcoin && ./build/bin/test_bitcoin --run_test={test_name}"
+    issue_tracker:
+      type: github
+      url: "https://github.com/bitcoin/bitcoin/issues"
+
+  go-ethereum:
+    path: ./go-ethereum
+    type: bft
+    language: go
+    fault_tolerance: "< 50% hashpower (PoW) / (n-1)/3 (PoS Casper)"
+    description: "Go Ethereum (Geth) - Ethereum execution layer client with consensus rule validation, state transitions, and EVM"
+    test_pattern: "*_test.go"
+    test_command: "go test -v -run {test_name} ./..."
+    issue_tracker:
+      type: github
+      url: "https://github.com/ethereum/go-ethereum/issues"
+
+  avalanchego:
+    path: ./avalanchego
+    type: bft
+    language: go
+    fault_tolerance: "(n-1)/3"
+    description: "AvalancheGo - Go implementation of an Avalanche node (Snowman/Snowball/Simplex BFT consensus)"
+    test_pattern: "*_test.go"
+    test_command: "go test -v -run {test_name} ./..."
+    issue_tracker:
+      type: github
+      url: "https://github.com/ava-labs/avalanchego/issues"
+
+# Fault types allowed per protocol type
+fault_types:
+  cft:
+    - node_crash
+    - node_restart
+    - network_partition
+    - network_delay
+    - message_drop
+    - message_reorder
+    - disk_failure
+    
+  bft:
+    - node_crash
+    - node_restart
+    - network_partition
+    - network_delay
+    - message_drop
+    - message_reorder
+    - disk_failure
+    # Byzantine faults (BFT only)
+    - byzantine_message
+    - equivocation
+    - invalid_signature
+    - selective_send
+
+# Bug categories
+bug_categories:
+  - safety      # Different nodes commit different values
+  - liveness    # Cluster cannot make progress
+  - agreement   # Nodes disagree on committed state
+

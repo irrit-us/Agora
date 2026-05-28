@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Inconsistent_Recovery_State",
+  "protocol_type": "cft",
+  "description": "This pattern detects atomicity violations between the persistence of the consensus log and the consensus metadata (HardState/CommitIndex). In many consensus implementations, these are stored in separate keys or files. If a crash occurs between writing the metadata (indicating an entry is committed) and writing the actual entry, the node recovers in an impossible state where it believes it must apply a log entry that does not exist.",
+  "fault_type": "crash_recovery",
+  "bug_category": "safety",
+  "trigger_condition": "Node crash occurring immediately after a state update but before log persistence (or during a partial flush).",
+  "test_template": "1. **Setup**: Initialize a cluster of N nodes (e.g., N=3).",
+  "discovered_in_repo": "raft",
+  "discovery_date": "2026-01-27T02:41:07.884171",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 1016905,
+    "api_cost": 0.8292936
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Phantom-Valid After Crash (Torn Block Persistence vs. Executed State)",
+  "protocol_type": "bft",
+  "description": "Many blockchain/consensus implementations persist block data and execution results in multiple phases. If the system crashes between phases, storage can contain a block that appears \u201cknown\u201d but is not executable because its post-state is missing. If the protocol\u2019s external API (e.g., consensus/engine interface) equates \u201cknown block\u201d with \u201cvalid block\u201d, it can return a definitive validity decision (`VALID`, \u201ccommitted\u201d, \u201cfinalized\u201d, etc.) without re-executing or confirming the state exists. This produces a \u201cphantom-valid\u201d block: externally affirmed as valid while internally lacking the necessary execution state, breaking consensus interface semantics and potentially causing agreement/liveness faults.",
+  "fault_type": "crash_recovery (torn_write / partial_persistence)",
+  "bug_category": "agreement (primary) / liveness (secondary)",
+  "trigger_condition": "- A node crashes/restarts after persisting \u201cblock presence\u201d artifacts (header/body/receipts/canonical pointers) but before durably committing the block\u2019s post-execution state (trie/snapshot) and/or an \u201cexecuted\u201d marker.",
+  "test_template": "1. Setup",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-27T23:24:19.442506",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 5511427,
+    "api_cost": 3.3130341999999997
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}
