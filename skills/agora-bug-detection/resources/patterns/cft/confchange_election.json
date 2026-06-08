@@ -1,0 +1,22 @@
+{
+  "tags": [
+    "bug_pattern",
+    "config_change",
+    "election",
+    "quorum",
+    "raft",
+    "membership"
+  ],
+  "context": {
+    "issue_url": "https://github.com/tikv/raft-rs/issues/221",
+    "pr_url": "https://github.com/tikv/raft-rs/pull/225",
+    "bug_category": "safety",
+    "pattern_type": "config_change_election_interaction",
+    "confirmed_by": "member (BusyJay)",
+    "trigger": "MsgTimeoutNow during pending conf change",
+    "fix_approach": "check pending conf change before campaign"
+  },
+  "pattern_id": "Config change and election interaction - removed node's vote causes incorrect quorum calculation",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: Configuration Change Election Interaction Bug. DESCRIPTION: When a configuration change removes a node, its vote is not removed from the votes map, leading to incorrect vote counting and election failure. ROOT CAUSE: When receiving MsgTimeoutNow, the node incorrectly starts a campaign without checking for pending configuration changes. All campaigns should verify there are no unapplied conf changes before proceeding, because: (1) removed node's vote may still be in votes map, (2) quorum calculation uses stale membership, (3) poll method returns wrong agree count. SCENARIO: (1) Config change to remove node A is proposed, (2) Node A's vote still exists in votes map, (3) MsgTimeoutNow triggers election, (4) poll() uses stale votes including removed node, (5) Election fails due to incorrect quorum calculation. FIX: Check pending conf change before campaign - if there are unapplied configuration changes, defer the campaign until they are applied. LESSON: Configuration changes and elections have complex interactions. Always check for pending conf changes before starting elections. The membership used for vote counting must be consistent with the current applied configuration, not the proposed or pending one."
+}

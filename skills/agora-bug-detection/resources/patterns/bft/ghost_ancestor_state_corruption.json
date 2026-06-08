@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Ghost Ancestor State Corruption",
+  "protocol_type": "bft",
+  "description": "The protocol accepts a block B even if its referenced parent P is missing from the local state, provided that an equivocating block P' (same round/author, different digest) is present. This allows an attacker to inject a \"Ghost Ancestor\" P' and have subsequent honest or malicious blocks build upon it, leading to state divergence. The execution engine may then execute transactions from the ghost chain, corrupting the state. This is likely due to the dependency check only verifying (Round, Author) existence rather than the specific Block Digest, or failing to validate parent existence entirely if a \"slot\" is filled.",
+  "fault_type": "byzantine_leader",
+  "bug_category": "agreement",
+  "trigger_condition": "Equivocation at Round R, followed by a block at Round R+1 referencing one of the equivocating blocks, while the victim only possesses the *other* equivocating block.",
+  "test_template": "1. Build honest history up to Round R.\n2. Create Honest Block B_R at Round R.\n3. Create Ghost Block B'_R at Round R (equivocation) with different payload.\n4. Create Honest Block B_{R+1} referencing Honest B_R.\n5. Feed Ghost B'_R and Honest B_{R+1} to the victim node (withhold Honest B_R).\n6. Assert that B_{R+1} is REJECTED or SUSPENDED.\n7. If B_{R+1} is ACCEPTED, the bug is present.",
+  "discovered_in_repo": "sui",
+  "discovery_date": "2026-01-24T16:37:19.762457",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

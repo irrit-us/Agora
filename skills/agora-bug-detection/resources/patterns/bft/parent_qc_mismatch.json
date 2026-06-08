@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Missing Parent-QC consistency validation allows Byzantine leaders to create malformed blocks",
+  "protocol_type": "bft",
+  "bug_category": "safety",
+  "description": "Missing validation that Block.Parent() == Block.QuorumCert().BlockHash() allows Byzantine leaders to create malformed blocks",
+  "fault_type": "malformed_block",
+  "trigger_condition": "Byzantine leader creates block where Block.Parent points to early/fork block, but Block.QC points to latest valid block. This causes Parent chain to diverge from QC chain.",
+  "root_cause": "NewBlock(parent, qc, ...) allows any combination of parent and QC. Voter.Verify() had no Parent-QC consistency check.",
+  "fix_approach": "Add check in Voter.Verify(): if proposal.Block.Parent() != proposal.Block.QuorumCert().BlockHash() { return error }",
+  "confirmed_in_repos": [
+    "hotstuff"
+  ],
+  "discovered_at": "2025-12-01",
+  "source_issue": "https://github.com/relab/hotstuff/issues/283",
+  "source_pr": "https://github.com/relab/hotstuff/pull/284"
+}

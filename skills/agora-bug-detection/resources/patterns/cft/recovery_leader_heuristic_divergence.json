@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Recovery Leader Heuristic Divergence",
+  "protocol_type": "cft",
+  "description": "This pattern occurs in leaderless or multi-leader consensus protocols (like EPaxos, Caesar, or Atlas) that utilize a Fast Path. When a recovery leader gathers state from survivors, it encounters conflicting uncommitted states (e.g., different timestamps, dependencies, or sequence numbers). The vulnerability exists if the recovery leader uses a naive heuristic (e.g., \"highest sequence number wins\" or \"prefer local log\") to resolve the conflict, ignoring the possibility that the \"lower\" or \"remote\" value was already committed by a quorum that included the now-crashed nodes.",
+  "fault_type": "crash_recovery",
+  "bug_category": "agreement",
+  "trigger_condition": "Leader crash after Fast Path commit + Divergent PreAccepted states in surviving quorum.",
+  "test_template": "1. **Setup**: Initialize a cluster of N replicas (N=3 or 5).",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-27T02:40:32.545262",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 4785532,
+    "api_cost": 3.3674994
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

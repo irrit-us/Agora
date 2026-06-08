@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Byzantine Leader Proposes Block Ignoring HighQC to Fork Chain",
+  "protocol_type": "bft",
+  "description": "A Byzantine leader can propose a block that extends from an older block instead of the block certified by the current HighQC, causing honest nodes to vote for a forked chain. This violates the safety property of the consensus protocol.\n\nThe vulnerability exists because the VoteRule in ChainedHotStuff only checks:\n1. Liveness condition: qcBlock.View() > bLock.View() (QC block view higher than locked block)\n2. Safety condition: block extends bLock (proposal extends locked block)\n\nNeither condition verifies that the proposal extends from the HighQC block. This allows a Byzantine leader to:\n- Create a proposal extending from an old block (e.g., B1)\n- Include a valid QC for that old block\n- Get honest nodes to vote if the QC block's view > bLock's view\n\nThe attack succeeds when bLock hasn't advanced (e.g., still at Genesis) but HighQC has moved forward (e.g., to B3). The malicious proposal with QC for B1 passes the liveness check since B1.View() > Genesis.View().\n\nHow to test:\n1. Build a chain: Genesis \u2192 B1 \u2192 B2 \u2192 B3\n2. Update HighQC to point to B3\n3. Byzantine leader proposes B4' extending from B1 (with QC1)\n4. Check if Voter.Verify() accepts the proposal\n5. Check if honest node votes for B4'\n6. If vote is sent, the bug is confirmed\n\nExpected correct behavior: Voter should reject proposals that don't extend from HighQC block",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "Byzantine leader is elected and proposes a block extending from an old block (not HighQC block) when bLock.View() < HighQC.View()",
+  "test_template": "1. Setup n=4 nodes with f=1 Byzantine leader\n2. Build blockchain with multiple blocks (Genesis \u2192 B1 \u2192 B2 \u2192 B3)\n3. Create QCs for each block and update HighQC to latest block (B3)\n4. Byzantine leader creates proposal extending from old block (B1) with old QC (QC1)\n5. Test honest node's Voter.Verify() and OnValidPropose()\n6. Assert: Verify should reject OR no vote should be sent\n7. Assert: HighQC should remain unchanged\n8. If vote is sent for old block, bug is confirmed",
+  "discovered_in_repo": "hotstuff",
+  "discovery_date": "2026-01-25T10:29:10.052525",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

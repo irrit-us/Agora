@@ -1,0 +1,23 @@
+{
+  "pattern_id": "Monotonic State Progression Violation",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern occurs when distributed consensus protocols fail to enforce monotonic progression of safety-critical state markers. In blockchain and BFT systems, certain markers (safe blocks, finalized blocks, committed checkpoints) represent irreversibility guarantees - once a block/state reaches this status, it should never be reversed or moved backward.",
+  "fault_type": "byzantine_consensus_client",
+  "bug_category": "safety",
+  "trigger_condition": "Byzantine consensus client sends state update messages that move safety markers (safe block, finalized block, checkpoint) backward in the protocol's progression order (height, epoch, slot number)",
+  "test_template": "```",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T15:01:09.742792",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 2216402,
+    "api_cost": 7.487598
+  },
+  "tested_repos": [
+    "go-ethereum"
+  ],
+  "confirmed_in_repos": [
+    "go-ethereum"
+  ]
+}

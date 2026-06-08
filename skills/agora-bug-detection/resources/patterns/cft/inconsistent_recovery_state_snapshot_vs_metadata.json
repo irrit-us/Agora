@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Inconsistent Recovery State (Snapshot vs. Metadata)",
+  "protocol_type": "cft",
+  "description": "Distributed consensus protocols often persist optimization artifacts (Snapshots/Checkpoints) and safety metadata (Commit Indices, Voted Terms) in separate storage operations. If a crash occurs between these writes, or if the storage layer lacks atomicity, a node may recover with a \"future\" Snapshot and \"past\" Metadata.",
+  "fault_type": "Crash_Recovery",
+  "bug_category": "liveness",
+  "trigger_condition": "Restarting a node with a persisted Snapshot Index > Persisted Commit Index (or View/Epoch number).",
+  "test_template": "1.  **Setup**: Initialize the protocol's storage backend (mock or file-based).",
+  "discovered_in_repo": "raft",
+  "discovery_date": "2026-01-27T02:47:57.646761",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 772764,
+    "api_cost": 1.3188128000000001
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

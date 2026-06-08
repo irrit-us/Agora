@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Committed Instance Overwrite via Higher Ballot COMMIT",
+  "protocol_type": "cft",
+  "description": "A replica that has already committed and executed an instance may incorrectly overwrite its committed attributes (Seq, Deps) when receiving a COMMIT message with a higher ballot number. This occurs when handleCommit does not check if the instance is already in COMMITTED or EXECUTED state before updating attributes. The vulnerability manifests during partition healing scenarios where a recovery leader commits the same instance with different attributes learned from a non-overlapping quorum.",
+  "fault_type": "network_partition",
+  "bug_category": "safety",
+  "trigger_condition": "1. Replica R1 commits instance (r,i) on fast path with attributes A1 (Seq, Deps, ballot=0)\n2. R1 executes the instance\n3. Network partition isolates R1\n4. Recovery leader R2 recovers (r,i) with different attributes A2 (higher Seq/different Deps, ballot=1) from non-overlapping quorum\n5. Partition heals\n6. R1 receives COMMIT message from R2 with ballot=1 and attributes A2\n7. R1 overwrites its committed instance attributes from A1 to A2\n8. Execution order diverges between R1 and R2",
+  "test_template": "```go\n// Setup: Create replicas, R1 commits instance on fast path\nr1.CreateInstance(r, i, cmdA, COMMITTED, seq1, deps1)\nr1.exec.executeCommand(r, i)\n\n// Simulate partition and recovery with different attributes\nr2.CreateInstance(r, i, cmdA, COMMITTED, seq2, deps2)\nr2.InstanceSpace[r][i].ballot = 1 // Higher ballot\n\n// Send COMMIT from R2 to R1\ncommitMsg := &Commit{LeaderId: r2, Replica: r, Instance: i, Seq: seq2, Deps: deps2}\nr1.handleCommit(commitMsg)\n\n// Assert: R1 should preserve original attributes\nassert(r1.InstanceSpace[r][i].Seq == seq1)\nassert(r1.InstanceSpace[r][i].Deps == deps1)\n```",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-25T11:13:41.707738",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

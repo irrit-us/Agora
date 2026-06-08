@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Double commit via equivocating blocks - is_committed checks Digest allowing same slot to commit twice",
+  "protocol_type": "bft",
+  "bug_category": "safety",
+  "description": "Linearizer can double-commit equivocating blocks at the same (Round, Author) slot because is_committed() checks include Digest, treating two equivocating blocks as different",
+  "fault_type": "equivocation",
+  "trigger_condition": "Byzantine validator creates equivocating blocks (same slot, different content). Block A committed first, then Block B committed through different DAG path because is_committed(BlockRef) returns false for B (different digest)",
+  "root_cause": "Commit status check uses BlockRef (including Digest) instead of Slot (Round, Author). Two equivocating blocks have different digests, so they are treated as uncommitted independently.",
+  "fix_approach": "Add is_any_block_at_slot_committed(Slot) method to check if ANY block at a given (Round, Author) slot has been committed, regardless of digest",
+  "confirmed_in_repos": [
+    "sui"
+  ],
+  "discovered_at": "2025-12-03",
+  "source_issue": "https://github.com/MystenLabs/sui/issues/24498",
+  "source_pr": "https://github.com/MystenLabs/sui/pull/24499"
+}

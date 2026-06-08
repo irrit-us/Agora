@@ -1,0 +1,26 @@
+{
+  "tags": [
+    "bug_pattern",
+    "liveness",
+    "crash_recovery",
+    "narwhal",
+    "sui",
+    "bft"
+  ],
+  "context": {
+    "issue_url": "https://github.com/MystenLabs/sui/issues/5315",
+    "bug_category": "liveness",
+    "pattern_type": "crash_recovery_state_loss",
+    "affected_component": "proposer",
+    "trigger_condition": "f+1 nodes crash and restart"
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-05T15:30:00",
+  "embedded": false,
+  "pattern_id": "Narwhal crash recovery liveness loss - proposer state not repopulated from disk after f+1 nodes restart",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Narwhal Crash Recovery Liveness Loss. DESCRIPTION: When f+1 nodes crash and restart simultaneously, the cluster cannot recover liveness. After crashed nodes restart, they receive headers from healthy nodes and produce certificates for round 8, but the proposer is empty because latest parents are not repopulated from disk. Additionally, nodes do not re-vote for rounds they have already voted on, so crashed nodes cannot make progress. ROOT CAUSE: The proposer does not reload certificates from persistent storage during crash recovery. Combined with the no-revote policy for already-voted rounds, this creates a deadlock where crashed nodes cannot propose new certificates. FIX: Implement proper crash recovery mechanisms that repopulate the proposer's parent certificates from disk storage. LESSON: Crash recovery must restore all in-memory state from persistent storage, especially proposer state. The interaction between state recovery and voting policies must be carefully considered - a no-revote policy combined with incomplete state recovery can cause permanent liveness loss."
+}

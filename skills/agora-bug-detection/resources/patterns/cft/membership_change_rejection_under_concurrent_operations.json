@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Membership Change Rejection Under Concurrent Operations",
+  "protocol_type": "cft",
+  "description": "During concurrent membership changes, Raft implementations may reject subsequent configuration changes when a previous change is still pending. This is expected behavior that prevents race conditions and maintains cluster consistency. Nodes correctly log \"possible unapplied conf change\" messages when rejecting concurrent changes.",
+  "fault_type": "concurrent_operations",
+  "bug_category": "agreement",
+  "trigger_condition": "Multiple configuration changes proposed in rapid succession before previous changes are fully applied",
+  "test_template": "Create a cluster with learners, propose multiple concurrent membership changes (learner promotions, node additions), verify all nodes maintain consistent views, check that rejected changes are properly logged",
+  "discovered_in_repo": "raft",
+  "discovery_date": "2026-01-24T19:36:46.765402",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

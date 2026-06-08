@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Finality Ancestry Violation",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern occurs in modular consensus architectures where consensus and execution layers are separated (e.g., Ethereum post-merge, Cosmos with ABCI, Polkadot). The execution layer accepts finality assertions from the consensus layer without validating fundamental structural constraints.",
+  "fault_type": "byzantine_consensus_client",
+  "bug_category": "safety",
+  "trigger_condition": "A Byzantine consensus client sends fork choice updates that finalize blocks not descended from the currently finalized block, exploiting missing ancestry validation in the execution layer's finality update handler.",
+  "test_template": "```",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T14:04:59.270358",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 6750359,
+    "api_cost": 21.39842100000001
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

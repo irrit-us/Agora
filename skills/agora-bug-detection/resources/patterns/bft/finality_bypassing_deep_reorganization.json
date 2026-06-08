@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Finality-Bypassing Deep Reorganization",
+  "protocol_type": "bft",
+  "description": "Execution engines in modular blockchain architectures (like Ethereum's execution/consensus split) rely on finality to safely prune historical state data, such as undo logs and old state tries. If the API bridging the consensus and execution layers fails to enforce the invariant that \"all future heads must descend from the finalized block,\" a malicious or buggy consensus client can command the execution engine to reorganize to a deep, conflicting fork. The execution engine blindly attempts to roll back past the finalized block, encounters pruned data, and either crashes (resulting in a Denial of Service) or silently corrupts its state by applying transitions to the wrong base state.",
+  "fault_type": "invalid_forkchoice / state_pruning_mismatch",
+  "bug_category": "safety / liveness",
+  "trigger_condition": "A node receives a forkchoice update commanding it to reorganize to a new head that does not descend from the finalized block, specifically branching from an ancestor whose state undo logs have been pruned.",
+  "test_template": "1. Initialize the target execution node with state pruning enabled (default for most non-archive nodes).",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T11:47:52.762667",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 5022533,
+    "api_cost": 5.2609774
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Cross-Fork State Equivocation",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern occurs when a protocol component accepts state updates (such as block finality markers, safety designations, or commitment indicators) without validating consistency across fork transitions. The core issue is treating each update as an independent transaction rather than maintaining invariants across the global state history.",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "A Byzantine leader (consensus client) sends conflicting state update messages that designate incompatible blocks at the same height on different forks as having the same semantic property (e.g., \"safe\", \"justified\", \"committed\"), exploiting insufficient fork-awareness in the validation logic.",
+  "test_template": "```",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T14:11:55.105406",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 1871407,
+    "api_cost": 6.235653
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

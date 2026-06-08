@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Amnesic Voting via Optimistic Acknowledgement",
+  "protocol_type": "cft",
+  "description": "This pattern occurs when a distributed system node acknowledges a state change (vote, accept, prepare) to its peers before ensuring that the state change is durable on stable storage. In Crash Fault Tolerant (CFT) protocols, this creates a window of vulnerability where a node \"forgets\" its vote upon restart. If the vote was pivotal in reaching a quorum, the system loses the quorum intersection guarantee. A new leader/recovery process can then form a new quorum that does not include the previous decision, leading to committed data being overwritten.",
+  "fault_type": "crash_recovery",
+  "bug_category": "safety",
+  "trigger_condition": "High-concurrency environments where network latency is lower than disk latency, followed immediately by a node crash.",
+  "test_template": "1.  **Setup**: Initialize a cluster of size $N$ (where $Q$ is the quorum size).",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-27T02:25:51.891604",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 1255748,
+    "api_cost": 1.5579056
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

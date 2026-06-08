@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Non-Monotonic Finality Progression Attack",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern occurs when the execution layer of a consensus protocol fails to validate that finalized (or committed) blocks progress monotonically through the canonical chain. In properly designed consensus protocols, finality should be a chain prefix property - if block N is finalized, all ancestors (blocks 0 through N-1) must also be finalized.",
+  "fault_type": "byzantine_consensus_client",
+  "bug_category": "safety",
+  "trigger_condition": "Consensus layer sends ForkchoiceUpdated messages with finalized block hashes that skip intermediate blocks in the canonical chain, creating \"finalized gaps\" where blocks exist between the old and new finalized block but were never themselves marked as finalized.",
+  "test_template": "```",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T14:56:31.765236",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 1979660,
+    "api_cost": 6.616344
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

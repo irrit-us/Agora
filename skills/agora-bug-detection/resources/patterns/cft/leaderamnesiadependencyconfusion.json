@@ -1,0 +1,16 @@
+{
+  "pattern_id": "LeaderAmnesiaDependencyConfusion",
+  "protocol_type": "cft",
+  "description": "When a leader crashes and recovers with partial state (amnesia), it may lose track of which log entries have been replicated to followers, causing it to resend already-committed entries as new proposals, leading to agreement violations. This test verifies that the recovered leader correctly tracks what entries each follower has and only sends missing entries, preserving the committed state and ensuring all nodes agree on the log contents.",
+  "fault_type": "byzantine_leader",
+  "bug_category": "agreement",
+  "trigger_condition": "Leader crashes and recovers with reset in-memory state but same persistent storage, then regains leadership",
+  "test_template": "1. Set up a multi-node Raft cluster with a leader\n2. Commit several entries with all nodes acknowledging\n3. Propose additional entries but only replicate to some nodes (create lag)\n4. Simulate leader crash by creating new raft instance with same storage but reset in-memory state\n5. Restart leader node and let it regain leadership\n6. Drive replication to catch up all nodes\n7. Verify all nodes have identical log entries and no entry appears multiple times with different terms",
+  "discovered_in_repo": "raft",
+  "discovery_date": "2026-01-24T18:53:50.902434",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

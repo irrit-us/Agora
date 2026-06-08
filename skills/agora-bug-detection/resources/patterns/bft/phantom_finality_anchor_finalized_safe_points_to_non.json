@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Phantom Finality Anchor (Finalized/Safe points to non-executed block)",
+  "protocol_type": "bft",
+  "description": "Many consensus/engine interfaces allow an external component (e.g., consensus client) to set a finalized/safe checkpoint by block hash. If the execution client treats \u201cblock is known\u201d as sufficient, a partially persisted (\u201cphantom\u201d) block can be accepted as an anchor even though it is not executable/validated. Once accepted, correct finality rules prevent reorganizing away from that anchor, permanently pinning the node to an invalid/unexecutable fork and causing durable divergence from honest peers (agreement failure) and inability to progress (liveness failure).",
+  "fault_type": "crash_recovery + partial_persistence (torn write) + insufficient_anchor_validation",
+  "bug_category": "agreement (primary) / liveness (secondary)",
+  "trigger_condition": "- Implementation accepts consensus \u201canchor\u201d pointers (finalized/safe/checkpoint) based on block presence (header/body) rather than executed/validated state availability.",
+  "test_template": "(portable to other implementations):",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T00:56:00.797757",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 28806197,
+    "api_cost": 10.86778665
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

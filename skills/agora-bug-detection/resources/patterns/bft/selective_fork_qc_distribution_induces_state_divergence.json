@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Selective Fork QC Distribution Induces State Divergence",
+  "protocol_type": "bft",
+  "description": "A Byzantine leader can exploit weak HighQC verification to create a fork from an old block, collect votes from honest nodes, and then selectively distribute the resulting QC to only some honest nodes. This creates a state where different honest nodes have conflicting HighQCs - some pointing to the legitimate chain, others to the fork chain. When an honest leader takes over in the next view, nodes with different HighQCs may have difficulty reaching consensus, leading to either state divergence or liveness issues.\n\nThe attack works because:\n1. Voter.Verify() accepts proposals that fork from old blocks (only checks bLock, not HighQC)\n2. Byzantine leader can collect votes for the fork proposal\n3. Byzantine leader selectively sends the fork QC to only some honest nodes\n4. Honest nodes end up with conflicting HighQC states\n5. When an honest leader proposes based on its HighQC, nodes with different HighQCs must reconcile\n\nThe vulnerability manifests as:\n- Honest nodes accepting fork proposals that don't extend from HighQC\n- Persistent state divergence where nodes have different HighQCs\n- Nodes switching chains when receiving proposals from honest leaders\n- Potential liveness issues if nodes cannot agree on which chain to follow\n\nTesting approach:\n1. Build honest chain Genesis \u2192 B1 \u2192 B2 \u2192 B3, all nodes have HighQC=QC3\n2. Byzantine leader proposes B4' forking from B1 (not B3)\n3. Verify honest nodes vote for B4' (indicates weak verification)\n4. Byzantine leader creates QC4' and sends it only to subset of honest nodes\n5. Verify nodes have conflicting HighQCs (some QC4', some QC3)\n6. Honest leader proposes based on its HighQC (QC4')\n7. Check if nodes with different HighQC accept/reject the proposal\n8. Verify no conflicting commits but check for state divergence",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "Byzantine leader is able to propose fork from old block AND selectively distribute QCs to create HighQC divergence among honest nodes",
+  "test_template": "1. Setup n=4 nodes with f=1 Byzantine\n2. Build honest chain with multiple blocks and QCs\n3. Byzantine leader proposes fork from old block (not HighQC block)\n4. Test if honest nodes vote for fork (check Voter.Verify())\n5. Create QC for fork block with collected votes\n6. Selectively update HighQC on subset of honest nodes (simulate selective distribution)\n7. Assert nodes have conflicting HighQCs\n8. Trigger view change with honest leader\n9. Honest leader proposes based on its HighQC\n10. Test if nodes with different HighQC accept/reject proposal\n11. Check for state divergence and liveness issues\n12. Verify no conflicting commits (safety check)",
+  "discovered_in_repo": "hotstuff",
+  "discovery_date": "2026-01-25T10:57:50.505194",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Fast Path Rollback Divergence via Witness Amnesia",
+  "protocol_type": "cft",
+  "description": "The protocol's recovery mechanism fails to respect a Fast-Path committed instance if the original leader crashes and a quorum member loses state (crash-restart). A subsequent recovery leader, seeing a conflict with a newer committed command but unable to verify the original Fast Path status (due to partition/crash), conservatively re-orders the original instance to follow the new one. This causes state divergence against nodes that already executed the original order (Fast Path).",
+  "fault_type": "crash_fault",
+  "bug_category": "agreement",
+  "trigger_condition": "Fast Path Commit + Leader Crash + Witness Crash/Restart (Amnesia) + Partition during Recovery",
+  "test_template": "1. Setup 5 replicas.\n2. R0 proposes CmdA, gets Fast Quorum (R0, R1, R2).\n3. R0 commits CmdA locally and sends Commit ONLY to R2.\n4. R0 crashes.\n5. R1 crashes and restarts (loses state).\n6. R3 proposes CmdB. R3 learns of CmdA from R2 (who has it committed).\n7. R3 commits CmdB with dependency on CmdA.\n8. R2 executes CmdA -> CmdB.\n9. R4 attempts to recover CmdA. R4 is partitioned from R2.\n10. R4 queries R1 (empty), R3 (has CmdB), R4 (empty).\n11. R4 sees CmdB conflicts with CmdA. R4 cannot verify CmdA's status.\n12. R4 recovers CmdA with dependency on CmdB (conservative safety).\n13. R4 executes CmdB -> CmdA (due to new dependency/seq).\n14. Assert divergence: R2 state != R4 state.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-24T18:03:45.607446",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

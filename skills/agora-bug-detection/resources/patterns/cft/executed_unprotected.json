@@ -1,0 +1,16 @@
+{
+  "pattern_id": "State divergence when leader executes before broadcasting Commit then crashes",
+  "protocol_type": "cft",
+  "bug_category": "safety",
+  "description": "State divergence occurs when leader executes command on Fast Path before broadcasting Commit, then crashes. Recovery assigns different dependencies, causing different execution orders.",
+  "fault_type": "crash_recovery",
+  "trigger_condition": "1) Leader achieves Fast Path, sets status=COMMITTED. 2) executeCommands goroutine executes before bcastCommit. 3) Leader crashes. 4) Recovery recalculates dependencies due to new conflicts. 5) handleCommit overwrites EXECUTED instance's deps without checking status.",
+  "root_cause": "Race condition between execution and commit broadcast. handleCommit does NOT check for EXECUTED status before overwriting Seq/Deps, allowing state downgrade from EXECUTED to COMMITTED.",
+  "fix_approach": "1) Add EXECUTED status check in handleCommit. 2) Ensure bcastCommit happens before execution. 3) Protect EXECUTED instances from dependency modification.",
+  "confirmed_in_repos": [
+    "efficient-epaxos"
+  ],
+  "discovered_at": "2025-12-01",
+  "source_issue": "https://github.com/efficient/epaxos/issues/27",
+  "source_pr": null
+}

@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Crash-Restart State Amnesia",
+  "protocol_type": "cft",
+  "description": "Distributed consensus protocols (Raft, Paxos, Zab) rely on \"Stable Storage\" to prevent a node from contradicting its past actions after a restart. This pattern occurs when an implementation optimizes for latency by replying to network requests before confirming that the state change is durable on disk.",
+  "fault_type": "crash_recovery",
+  "bug_category": "safety",
+  "trigger_condition": "Node crash occurs immediately after a state transition (e.g., voting, ballot increase) but before the transition is flushed to stable storage.",
+  "test_template": "1. **Setup:** Initialize a cluster or a single node with a mocked storage layer that allows controlling write latency.",
+  "discovered_in_repo": "raft",
+  "discovery_date": "2026-01-27T03:01:10.295025",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 2131386,
+    "api_cost": 1.4245258
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

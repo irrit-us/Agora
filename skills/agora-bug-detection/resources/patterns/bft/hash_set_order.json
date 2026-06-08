@@ -1,0 +1,21 @@
+{
+  "tags": [
+    "bug_pattern",
+    "hash_mismatch",
+    "set_order",
+    "state_transfer",
+    "bftsmart",
+    "non_deterministic"
+  ],
+  "context": {
+    "issue_url": "https://github.com/bft-smart/library/issues/71",
+    "bug_category": "state_inconsistency",
+    "pattern_type": "non_deterministic_iteration_order",
+    "affected_component": "DurableStateManager",
+    "problematic_collection": "HashSet<ConsensusMessage>",
+    "fix_approach": "use TreeSet or sort before serialization"
+  },
+  "pattern_id": "HashSet non-deterministic iteration order causes hash mismatch in state transfer",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Non-Deterministic Set Iteration Order Causes Hash Mismatch. DESCRIPTION: When using Collaborative State Transfer strategy, state transfer for a recovering replica fails because serialized log hashes do not match due to proofs being in different order. ROOT CAUSE: CommandsInfo objects contain ConsensusMessages stored in a HashSet. HashSet iteration order is non-deterministic and depends on hash codes and insertion order. When serializing for hash computation, different replicas may iterate the Set in different orders, producing different serialized bytes and thus different hashes. SCENARIO: (1) Replica crashes and restarts, initiating state transfer, (2) Recovering replica requests state from other replicas, (3) Source replica serializes its log including Set of ConsensusMessages, (4) Hash is computed from serialized bytes, (5) Recovering replica computes hash from its own serialization, (6) Set iteration order differs between replicas, (7) Hashes don't match despite identical logical content, (8) State transfer fails with 'Lower/Upper log does not match'. FIX: Use a deterministic collection like TreeSet with a defined comparator, or sort the elements before serialization to ensure consistent ordering across all replicas. LESSON: When computing hashes or checksums over collections for distributed comparison, always use deterministic iteration order. HashSet, HashMap and similar collections have unpredictable iteration order. Use TreeSet/TreeMap or explicitly sort before serialization."
+}

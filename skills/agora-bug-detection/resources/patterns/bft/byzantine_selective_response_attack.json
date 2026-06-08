@@ -1,0 +1,21 @@
+{
+  "pattern_id": "Byzantine Selective Response Attack",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern occurs in consensus protocols that use sub-sampled voting or polling mechanisms where Byzantine nodes can provide different responses to different honest nodes. The attack exploits the lack of response consistency enforcement, allowing Byzantine validators to:",
+  "fault_type": "byzantine_coordination",
+  "bug_category": "safety",
+  "trigger_condition": "- Byzantine validators control \u226533% of stake (sufficient to influence quorum decisions)",
+  "test_template": "```",
+  "discovered_in_repo": "avalanchego",
+  "discovery_date": "2026-03-28T13:41:29.275423",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 1061799,
+    "api_cost": 3.5112929999999998
+  },
+  "tested_repos": [
+    "avalanchego"
+  ],
+  "confirmed_in_repos": []
+}

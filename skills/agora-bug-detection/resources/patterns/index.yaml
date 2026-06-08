@@ -1,0 +1,427 @@
+cft:
+  - id: amnesic_voting_via_optimistic_acknowledgement
+    summary: "This pattern occurs when a distributed system node acknowledges a state change (vote, accept, prepare) to its peers before ensuring that the state ..."
+    category: safety
+  - id: checkpoint_recovery_without_execedupto_restoration_causes_duplicate_execution
+    summary: "When a replica creates a checkpoint that captures the state machine snapshot but does not atomically persist the ExecedUpTo metadata, and upon reco..."
+    category: safety
+  - id: checkpoint_timeout
+    summary: "BUG PATTERN: Timeout Handler Not Respecting Mode State"
+    category: unknown
+  - id: commit_first_dependency_amnesia
+    summary: "In EPaxos, handleCommit installs a new instance when it receives a Commit for an (replica,instance) pair it has never seen (inst == nil) by blindly..."
+    category: safety/agreement
+  - id: committed_command_vanishing_via_witness_amnesia
+    summary: "The recovery mechanism incorrectly infers that an instance is empty/unused if a quorum of available nodes has no record of it, failing to account f..."
+    category: agreement
+  - id: committed_instance_overwrite_via_higher_ballot_commit
+    summary: "A replica that has already committed and executed an instance may incorrectly overwrite its committed attributes (Seq, Deps) when receiving a COMMI..."
+    category: safety
+  - id: compaction_induced_silent_divergence
+    summary: "The protocol's recovery mechanism fails to account for nodes that have executed and compacted (checkpointed) a Fast Path command that is later reco..."
+    category: safety
+  - id: confchange_election
+    summary: "BUG PATTERN: Configuration Change Election Interaction Bug"
+    category: unknown
+  - id: confchange_silent
+    summary: "ConfChange silently converted to no-op without error notification when rejected due to pending change"
+    category: liveness
+  - id: consensus_amnesia_recovery_injection
+    summary: "This pattern targets the assumption that a node's local state is monotonic"
+    category: safety
+  - id: crash_restart_state_amnesia
+    summary: "Distributed consensus protocols (Raft, Paxos, Zab) rely on \"Stable Storage\" to prevent a node from contradicting its past actions after a restart"
+    category: safety
+  - id: crash_synchronized_election_timers
+    summary: "In a 3-node raft-rs cluster with PreVote enabled and stable storage, a leader-isolated partition combined with nearly-simultaneous crashes and rest..."
+    category: liveness
+  - id: crash_then_forget_preaccept
+    summary: "In EPaxos with a fast path, a replica may send a PreAcceptOK response before durably recording the instance metadata (command, sequence number, dep..."
+    category: safety/agreement
+  - id: crash_time_vote_persistence
+    summary: "This pattern captures a class of Raft election-safety bugs where a node can grant more than one vote in the same term after a crash that tears the ..."
+    category: safety
+  - id: crash_torn_vote_persistence
+    summary: "In this Raft implementation currentTerm and the persisted vote (lastVoteTerm/lastVoteCand) are written to StableStore separately"
+    category: safety/agreement
+  - id: deadlock_wal_sync
+    summary: "BUG PATTERN: Deadlock on etcd raft orderer chain apply change on orderer startup"
+    category: unknown
+  - id: dependency_cycle_sequence_collision
+    summary: "In leaderless or dependency-based consensus protocols (like EPaxos, Caesar, or Mencius), ordering is derived from a dependency graph rather than a ..."
+    category: agreement
+  - id: dependency_divergence_after_concurrent_proposal_recovery
+    summary: "When two replicas concurrently propose commands and message reordering causes different replicas to compute different dependency sets during the Pr..."
+    category: agreement
+  - id: epaxos_recovery_drops_conflicting
+    summary: "In a 3-node EPaxos cluster (R0,R1,R2), command op1 (I1 = (R0,0)) is fast-committed on {R0,R1} while R2 never sees it"
+    category: agreement
+  - id: executed_unprotected
+    summary: "State divergence occurs when leader executes command on Fast Path before broadcasting Commit, then crashes"
+    category: safety
+  - id: execution_deadlock
+    summary: "Execution engine deadlock due to unbounded busy-wait in strongconnect when processing transitive dependencies"
+    category: liveness
+  - id: execution_status_not_persisted_causing_duplicate_execution_on
+    summary: "In consensus protocols with separate execution engines (like EPaxos), commands are first committed to the log, then executed against the state machine"
+    category: safety
+  - id: fast_path_preacceptok_merge
+    summary: "In this efficient-epaxos implementation, the leader merges dependency and sequence information from multiple PreAccept / PreAcceptOK style response..."
+    category: liveness
+  - id: fast_path_recovery_dependency_divergence
+    summary: "A recovering replica may conservatively update dependencies for a command that was already Fast-Committed and Executed by the original leader, lead..."
+    category: safety
+  - id: fast_path_recovery_dependency_divergence_80c039
+    summary: "The recovery procedure for a Fast Path instance can incorrectly inject a conflicting dependency (CmdB) into the recovered instance (CmdA), even if ..."
+    category: safety
+  - id: fast_path_rollback_divergence_via_witness_amnesia
+    summary: "The protocol's recovery mechanism fails to respect a Fast-Path committed instance if the original leader crashes and a quorum member loses state (c..."
+    category: agreement
+  - id: follower_sync_deadlock
+    summary: "BUG PATTERN: Follower Sync Deadlock with External Connection Requests"
+    category: unknown
+  - id: ghostexecution_prematureapply
+    summary: "This pattern targets the boundary between the consensus layer and the application layer"
+    category: safety
+  - id: gossip_pubsub_race
+    summary: "BUG PATTERN: Map Access Without Existence Check Under Concurrent Deletion"
+    category: unknown
+  - id: hidden_dependency_amnesia
+    summary: "The protocol's recovery mechanism fails to preserve established dependencies if the intersection node (which holds the dependency link) loses state..."
+    category: agreement
+  - id: inconsistent_recovery_of_dependency_sets
+    summary: "In leaderless or DAG-based consensus protocols (like EPaxos, Caesar, or Mencius), commands are ordered based on dependency graphs"
+    category: liveness
+  - id: inconsistent_recovery_state
+    summary: "This pattern detects atomicity violations between the persistence of the consensus log and the consensus metadata (HardState/CommitIndex)"
+    category: safety
+  - id: inconsistent_recovery_state_snapshot_vs_metadata
+    summary: "Distributed consensus protocols often persist optimization artifacts (Snapshots/Checkpoints) and safety metadata (Commit Indices, Voted Terms) in s..."
+    category: liveness
+  - id: inflights_buffer_not_cleared_after_snapshot_installation
+    summary: "When a leader sends a snapshot to a follower while having unacknowledged AppendEntries messages in the Inflights buffer, the Inflights buffer may n..."
+    category: liveness
+  - id: leader_election_race
+    summary: "BUG PATTERN: Race Conditions During Leader Establishment"
+    category: unknown
+  - id: leaderamnesiadependencyconfusion
+    summary: "When a leader crashes and recovers with partial state (amnesia), it may lose track of which log entries have been replicated to followers, causing ..."
+    category: agreement
+  - id: learner_transfer
+    summary: "BUG PATTERN: Wrong Variable Check in Role Validation"
+    category: unknown
+  - id: membership_change_rejection_under_concurrent_operations
+    summary: "During concurrent membership changes, Raft implementations may reject subsequent configuration changes when a previous change is still pending"
+    category: agreement
+  - id: mutual_dependency_cycle_recovery_divergence
+    summary: "The EPaxos recovery protocol can create mutual dependency cycles (A->B and B->A) when two conflicting commands are recovered concurrently by differ..."
+    category: safety
+  - id: partitioned_commit_overwrite
+    summary: "A replica overwrites a locally COMMITTED instance when receiving a COMMIT message with a higher ballot number for the same instance"
+    category: agreement
+  - id: pipeline_stall_with_maxinflight_1
+    summary: "When MaxInflight is set to 1, if a MsgApp is lost, the Leader remains permanently paused"
+    category: liveness
+  - id: probe_index_invariant
+    summary: "BUG PATTERN: Probe state can set Next index less than Match, violating Raft invariant"
+    category: unknown
+  - id: read_write_inconsistency_via_recovery_reordering
+    summary: "The protocol's recovery logic allows reordering of a Fast-Committed \"Read\" operation after a concurrent \"Write\" operation, causing the Read to retu..."
+    category: safety
+  - id: readindex_drop
+    summary: "BUG PATTERN: Variable Override Causes Request Dropping"
+    category: None
+  - id: recommit_panic
+    summary: "BUG PATTERN: Initialization Order Dependency Panic"
+    category: unknown
+  - id: recovery_attribute_merge_conflict
+    summary: "This pattern occurs in leaderless or multi-leader consensus protocols (like EPaxos or Caesar) that support Fast Paths"
+    category: agreement
+  - id: recovery_leader_heuristic_divergence
+    summary: "This pattern occurs in leaderless or multi-leader consensus protocols (like EPaxos, Caesar, or Atlas) that utilize a Fast Path"
+    category: agreement
+  - id: recovery_state_inconsistency_priority
+    summary: "Distributed systems often persist state in multiple segments (Logs, Snapshots, Metadata)"
+    category: safety
+  - id: recovery_state_regression_status_hierarchy_violation
+    summary: "This pattern occurs in consensus protocols (Paxos, Raft, EPaxos) during the leader election or recovery phase"
+    category: safety
+  - id: sequence_number_regression_during_recovery_under_amnesia
+    summary: "When a replica moves to the Accept phase and assigns a higher sequence number to respect conflicts or dependencies, but all replicas that received ..."
+    category: safety
+  - id: shutdown_deadlock
+    summary: "BUG PATTERN: Raft"
+    category: unknown
+  - id: snapshot_invalidation_by_recovery_divergence
+    summary: "If a node takes a snapshot after Fast-Executing a command, and that command's dependencies are subsequently altered by a recovery leader (due to a ..."
+    category: safety
+  - id: snapshot_loop
+    summary: "BUG PATTERN: Stale follower gets stuck in infinite snapshot installation loop"
+    category: unknown
+  - id: snapshot_reopen
+    summary: "BUG PATTERN: One-Shot Reader Reuse Causes Empty Data"
+    category: unknown
+  - id: snapshot_tail_term_mismatch
+    summary: "This pattern targets optimizations in consensus protocols where implementations try to \"save\" existing log entries when applying a snapshot"
+    category: safety
+  - id: stale_metadata_adoption_in_recovery
+    summary: "This pattern occurs in distributed consensus protocols (like Paxos, Raft, EPaxos) when the recovery mechanism fails to distinguish between \"tentati..."
+    category: safety
+  - id: sync_double_commit
+    summary: "BUG PATTERN: Ordering node panic during synchronization due to attempting to commit already-committed block"
+    category: unknown
+  - id: trim_before_execute_gc
+    summary: "In efficient-epaxos, the Exec engine uses ExecedUpTo[q] as a lower bound when scanning dependency ranges in strongconnect:
+
+  for q := 0; q < N; q+..."
+    category: safety
+  - id: unpersisted_promise_violation_phantom_promise
+    summary: "This pattern occurs in Consensus/CFT protocols (Paxos, Raft, ZAB) when a node acknowledges a proposal or updates its internal logical clock (Term, ..."
+    category: safety
+  - id: unpersisted_write_acknowledgement
+    summary: "This pattern targets the \"Check-IO-Reply\" sequence in consensus protocols"
+    category: agreement
+  - id: verify_leader_oom
+    summary: "BUG PATTERN: OOM caused by VerifyLeader notify list memory leak when node fails"
+    category: unknown
+bft:
+  - id: aggregateqc_dos
+    summary: "BUG PATTERN: Byzantine DoS via Insufficient QC Validation"
+    category: None
+  - id: bootstrap_time_state_divergence_exploitation
+    summary: "This vulnerability pattern occurs in consensus protocols that implement a bootstrap or state synchronization mechanism for nodes joining or recover..."
+    category: safety
+  - id: byzantine_leader_can_fork_from_genesis_bypassing_highqc
+    summary: "The VoteRule in ChainedHotStuff only checks if a proposal extends from bLock (the locked block) but does not verify that the proposal extends from ..."
+    category: safety
+  - id: byzantine_leader_equivocation_with_different_highqcs_causes_honest
+    summary: "A Byzantine leader can exploit weak HighQC validation in the VoteRule by sending different proposals with different QCs to different subsets of hon..."
+    category: safety
+  - id: byzantine_leader_forks_from_old_block_via_missing
+    summary: "The VoteRule in ChainedHotStuff only validates that a proposal either (1) has QC"
+    category: safety
+  - id: byzantine_leader_proposes_block_ignoring_highqc_to_fork
+    summary: "A Byzantine leader can propose a block that extends from an older block instead of the block certified by the current HighQC, causing honest nodes ..."
+    category: safety
+  - id: byzantine_leader_withholds_qc_then_selectively_injects_conflicting
+    summary: "A Byzantine leader can withhold a valid QC across a view change, then selectively reveal it to a subset of honest nodes in a later view"
+    category: safety
+  - id: byzantine_selective_response_attack
+    summary: "This vulnerability pattern occurs in consensus protocols that use sub-sampled voting or polling mechanisms where Byzantine nodes can provide differ..."
+    category: safety
+  - id: byzantine_vote_equivocation_without_commitment
+    summary: "This vulnerability pattern occurs in consensus protocols that implement voting or polling mechanisms without enforcing vote consistency across the ..."
+    category: safety
+  - id: cache_deadlock
+    summary: "BUG PATTERN: Unbuffered Channel Notification Loss Deadlock"
+    category: unknown
+  - id: causal_fork_via_selective_ancestor_equivocation
+    summary: "A Byzantine validator creates equivocating blocks at the same slot (round, author) with strategically different ancestor sets"
+    category: safety
+  - id: commit_vote_ancestor_inconsistency_induced_split_commit
+    summary: "When a Byzantine node equivocates with blocks containing different ancestor sets AND different commit votes that are each internally consistent wit..."
+    category: safety
+  - id: commit_vote_equivocation_causing_divergent_linearization
+    summary: "A Byzantine node can create two equivocating blocks at the same (round, author) slot with identical ancestors but different commit_votes, then sele..."
+    category: safety
+  - id: conflicting_commit_via_buffered_vote_replay
+    summary: "The VotingMachine buffers votes for missing blocks but fails to re-verify safety invariants (specifically, \"single commit per height\" or \"conflicti..."
+    category: safety
+  - id: conflicting_commit_via_buffered_vote_replay_f68741
+    summary: "The VotingMachine buffers votes for missing blocks"
+    category: safety
+  - id: crash_amnesia_safety_state
+    summary: "In Aptos safety-rules, SafetyData (epoch, last_voted_round, preferred_round, one_chain_round, last_vote, highest_timeout_round) is durably persiste..."
+    category: safety
+  - id: crash_induced_last_voted
+    summary: "This vulnerability arises when a validator's SafetyRules persistence for `SafetyData` (specifically `last_voted_round` and `last_vote`) can regress..."
+    category: safety
+  - id: crash_induced_lock_amnesia
+    summary: "In HotStuff-style BFT, each validator maintains a lock encoded in SafetyRules state (preferred_round / one_chain_round / last_voted_round)"
+    category: safety
+  - id: crash_induced_safetyrules_lock
+    summary: "In Aptos HotStuff-style consensus, SafetyRules tracks a lock on branches via SafetyData fields such as last_voted_round, preferred_round, and one_c..."
+    category: safety
+  - id: crash_induced_safetyrules_regression
+    summary: "In Aptos HotStuff, each validator runs SafetyRules in a separate process with locally persisted SafetyData (last_voted_round, preferred_round/lock,..."
+    category: safety
+  - id: crash_induced_vote_amnesia
+    summary: "In Aptos SafetyRules, vote emission and persistence of SafetyData (particularly last_voted_round and last_vote) are not effectively atomic across c..."
+    category: safety
+  - id: crash_induced_vote_amnesia_6ec7ed
+    summary: "In HotStuff-style BFT consensus with a SafetyRules component that persists per-validator voting state (last_voted_round, last_vote), a crash window..."
+    category: safety
+  - id: crash_recovered_safety_lock
+    summary: "In Aptos SafetyRules, SafetyData (including last_voted_round, preferred_round, and one_chain_round) is persisted separately from BlockStore / QC state"
+    category: safety
+  - id: crash_recovery_liveness
+    summary: "BUG PATTERN: Narwhal Crash Recovery Liveness Loss"
+    category: unknown
+  - id: crash_torn_validation_marker_bypass_known_in_db
+    summary: "Many distributed/consensus systems separate ingestion/persistence from semantic validation (e"
+    category: safety + agreement (primary), liveness (secondary)
+  - id: crash_window_safety_rules
+    summary: "In Aptos SafetyRules, the persistent SafetyData (last_voted_round, preferred_round, last_vote, etc"
+    category: safety
+  - id: cross_fork_finality_state_inconsistency
+    summary: "This vulnerability pattern occurs when distributed consensus protocols maintain multiple finality markers (e"
+    category: safety
+  - id: cross_fork_state_equivocation
+    summary: "This vulnerability pattern occurs when a protocol component accepts state updates (such as block finality markers, safety designations, or commitme..."
+    category: safety
+  - id: double_commit
+    summary: "Linearizer can double-commit equivocating blocks at the same (Round, Author) slot because is_committed() checks include Digest, treating two equivo..."
+    category: safety
+  - id: duplicate_votes_qc
+    summary: "BUG PATTERN: Duplicate votes prevent quorum certificate formation, enabling liveness attack"
+    category: unknown
+  - id: envelope_payload_identity_mismatch
+    summary: "This pattern occurs when a distributed system validates the sender of a message (Envelope) and the signer of the data (Payload) independently, with..."
+    category: safety
+  - id: equivocation_with_selective_broadcast_causes_split_commit
+    summary: "In DAG-based consensus protocols like Mysticeti, when a Byzantine node creates two equivocating blocks (same round and author, different content/di..."
+    category: safety
+  - id: finality_ancestry_invariant_bypass
+    summary: "In modular blockchain architectures, consensus and execution are often decoupled"
+    category: safety
+  - id: finality_ancestry_violation
+    summary: "This vulnerability pattern occurs in modular consensus architectures where consensus and execution layers are separated (e"
+    category: safety
+  - id: finality_bypassing_deep_reorganization
+    summary: "Execution engines in modular blockchain architectures (like Ethereum's execution/consensus split) rely on finality to safely prune historical state..."
+    category: safety / liveness
+  - id: finality_head_ancestry_violation
+    summary: "This vulnerability pattern occurs in blockchain execution layers that accept forkchoice updates from consensus layers without validating critical a..."
+    category: safety
+  - id: finality_height_monotonicity_violation
+    summary: "In distributed consensus protocols with explicit finalization mechanisms (BFT protocols, PoS with finality gadgets like Casper FFG, PBFT variants),..."
+    category: safety
+  - id: finality_monotonicity_violation
+    summary: "This vulnerability pattern occurs in distributed consensus systems that separate consensus logic from state execution (e"
+    category: safety
+  - id: finality_monotonicity_violation_ancestor_rollback
+    summary: "In decoupled consensus/execution architectures or modular BFT systems, the component responsible for maintaining the ledger state must blindly trus..."
+    category: safety
+  - id: flush_rlock_write
+    summary: "BUG PATTERN: Mempool Flush() uses read-lock (RLock) while performing write/mutating operations"
+    category: unknown
+  - id: forkchoiceheadonunvalidatedblock_missingstatemisclassifiedasinvalid_persistentpoisoning
+    summary: "Some implementations allow forkchoice head-setting to trigger implicit execution/verification/canonicalization of a block that is only “known” (hea..."
+    category: agreement (primary) / liveness (secondary)
+  - id: ghost_ancestor_injection_gc_bypass
+    summary: "The protocol allows blocks to reference ancestors that are below the Garbage Collection (GC) round without verifying that these ancestors match the..."
+    category: safety
+  - id: ghost_ancestor_injection_pruned_history_equivocation
+    summary: "The protocol fails to validate \"missing ancestor\" blocks against canonical history checkpoints if those ancestors belong to rounds that have alread..."
+    category: safety
+  - id: ghost_ancestor_injection_via_pruned_history_bypass
+    summary: "The protocol fails to verify the existence or validity of ancestors if they belong to a pruned epoch/round"
+    category: safety
+  - id: ghost_ancestor_state_corruption
+    summary: "The protocol accepts a block B even if its referenced parent P is missing from the local state, provided that an equivocating block P' (same round/..."
+    category: agreement
+  - id: gossip_votes_race
+    summary: "BUG PATTERN: Race condition between gossipVotesRoutine and consensus state updates"
+    category: unknown
+  - id: hash_set_order
+    summary: "BUG PATTERN: Non-Deterministic Set Iteration Order Causes Hash Mismatch"
+    category: unknown
+  - id: late_stage_conflicting_block_injection_with_confidence_poisoning
+    summary: "This vulnerability pattern affects consensus protocols that use incremental confidence building through multiple voting rounds before finalization"
+    category: liveness
+  - id: mempool_addtx_race
+    summary: "BUG PATTERN: Non-Atomic Multi-Variable Update Race Condition"
+    category: unknown
+  - id: mempool_data_race
+    summary: "BUG PATTERN: CListMempool has data race due to mixed mutex and atomic access patterns"
+    category: unknown
+  - id: monotonic_state_progression_violation
+    summary: "This vulnerability pattern occurs when distributed consensus protocols fail to enforce monotonic progression of safety-critical state markers"
+    category: safety
+  - id: multi_round_cascading_equivocation_with_divergent_dag_structure
+    summary: "A Byzantine validator creates coordinated equivocating blocks across multiple rounds, causing honest nodes to build structurally divergent DAGs"
+    category: safety
+  - id: network_starvation
+    summary: "BUG PATTERN: Network Starvation from BoundedExecutor Head-of-Line Blocking"
+    category: unknown
+  - id: non_monotonic_finality_acceptance
+    summary: "This vulnerability pattern occurs in consensus protocols with separated consensus and execution layers (or similar modular architectures) where the..."
+    category: safety
+  - id: non_monotonic_finality_progression_attack
+    summary: "This vulnerability pattern occurs when the execution layer of a consensus protocol fails to validate that finalized (or committed) blocks progress ..."
+    category: safety
+  - id: non_monotonic_safety_marker_progression
+    summary: "This vulnerability pattern occurs when a distributed system uses progressive safety markers (safe blocks, checkpoints, finalized states) to provide..."
+    category: safety
+  - id: oom_missing_blocks
+    summary: "BlockManager missing_blocks map can grow unbounded leading to OOM when processing blocks with many missing ancestors"
+    category: liveness
+  - id: pacemaker_resets_view_timeout
+    summary: "In the Diem-style Synchronizer pacemaker of the Go HotStuff implementation, proposals from the current leader cause advanceView to be invoked *befo..."
+    category: liveness
+  - id: parent_qc_mismatch
+    summary: "Missing validation that Block"
+    category: safety
+  - id: peerset_slice_race
+    summary: "BUG PATTERN: P2P Switch"
+    category: unknown
+  - id: phantom_finality_anchor_finalized_safe_points_to_non
+    summary: "Many consensus/engine interfaces allow an external component (e"
+    category: agreement (primary) / liveness (secondary)
+  - id: phantom_valid_after_crash_torn_block_persistence_vs
+    summary: "Many blockchain/consensus implementations persist block data and execution results in multiple phases"
+    category: agreement (primary) / liveness (secondary)
+  - id: replay_attack
+    summary: "BUG PATTERN: Incomplete State Recovery Enables Replay Attack"
+    category: unknown
+  - id: safe_block_orphaning_via_gap_region_reorg
+    summary: "This vulnerability pattern occurs in consensus protocols that implement multi-level finality (e"
+    category: safety
+  - id: safety_twins
+    summary: "BUG PATTERN: Safety violation in chained HotStuff due to missing dummy blocks assumption"
+    category: unknown
+  - id: selective_ancestor_equivocation_causes_divergent_linearization
+    summary: "In DAG-based consensus, a Byzantine validator can create equivocating blocks with strategically different ancestor sets and selectively broadcast t..."
+    category: safety
+  - id: selective_ancestor_equivocation_causing_commit_divergence
+    summary: "In DAG-based consensus, a Byzantine validator can create equivocating blocks with strategically different ancestor sets and selectively broadcast t..."
+    category: safety
+  - id: selective_ancestor_equivocation_causing_linearization_divergence
+    summary: "A Byzantine validator creates two equivocating blocks with strategically different ancestor sets (e"
+    category: safety
+  - id: selective_equivocation_in_confidence_based_finalization
+    summary: "**:"
+    category: **: safety
+  - id: selective_fork_qc_distribution_induces_state_divergence
+    summary: "A Byzantine leader can exploit weak HighQC verification to create a fork from an old block, collect votes from honest nodes, and then selectively d..."
+    category: safety
+  - id: signature_replay
+    summary: "QC verification does not validate that QC"
+    category: safety
+  - id: startup_race
+    summary: "BUG PATTERN: Intermittent data race in consensus"
+    category: unknown
+  - id: tc_comparison_order
+    summary: "BUG PATTERN: Statement Ordering Bug - Comparison Before Assignment"
+    category: unknown
+  - id: temporal_view_fragmentation_via_selective_information_disclosure
+    summary: "This vulnerability pattern occurs in consensus protocols that build confidence or voting state incrementally through repeated polling rounds, where:"
+    category: safety
+  - id: timeout_crash_lock_amnesia
+    summary: "In Aptos's 2-chain SafetyRules with TimeoutCertificates, a crash in the small window between emitting a vote and durably persisting updated SafetyD..."
+    category: safety
+  - id: transient_invalid_persistence_poisoning_via_finality_safety_anchors
+    summary: "A transient inability to execute (missing state) is treated as proof of invalidity"
+    category: agreement (primary) / liveness (secondary)
+  - id: transientmissingstatemisclassifiedasinvalid_badblockpersistence
+    summary: "Many implementations conflate “I cannot currently validate this block due to missing local prerequisites” with “this block is permanently invalid b..."
+    category: liveness (primary) / agreement (secondary)
+  - id: transientvalidationfailuremisclassifiedaspermanentinvalid_bad_block_poisoning
+    summary: "Distributed consensus stacks often distinguish:"
+    category: agreement (primary) / liveness (secondary)
+  - id: transitive_confidence_poisoning_via_selective_state_exposure
+    summary: "This vulnerability pattern exploits the gap between state visibility and confidence accumulation in consensus protocols that use transitive voting ..."
+    category: safety
+  - id: viewchange_deadlock
+    summary: "BUG PATTERN: Lock Hierarchy Violation Causing Parent-Child Dependency Deadlock"
+    category: unknown

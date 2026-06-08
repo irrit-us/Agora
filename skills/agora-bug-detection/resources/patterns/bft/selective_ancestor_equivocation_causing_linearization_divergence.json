@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Selective Ancestor Equivocation Causing Linearization Divergence",
+  "protocol_type": "bft",
+  "description": "A Byzantine validator creates two equivocating blocks with strategically different ancestor sets (e.g., B2_v1 references [A1, A2] while B2_v2 references [A1, A3]) and selectively broadcasts them to different honest nodes. Each honest node builds subsequent DAG rounds on top of the equivocating block it received. When nodes independently commit and linearize their DAG views, they produce different transaction sequences because they committed different equivocating blocks at the same position. This violates the fundamental safety property that all honest nodes must produce identical linearized sequences.",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "1. Byzantine node creates two blocks at same (round, author) with different ancestor sets. 2. Selectively broadcasts each block to different subsets of honest nodes. 3. Honest nodes build subsequent rounds on top of different equivocating blocks. 4. Commit and linearization triggered independently on each node's DAG view.",
+  "test_template": "Create separate DagState instances for each honest node. Byzantine node creates two equivocating blocks with different ancestors. Send B_v1 to subset of nodes, B_v2 to others. Each node builds rounds 3+ on their view. Trigger commit and linearization. Assert: (1) txs_h1 == txs_h2 == txs_h3 (identical sequences), (2) !(b_v1_committed && b_v2_committed) (not both committed), (3) committed_digests_h1 == committed_digests_h2 (same block sets).",
+  "discovered_in_repo": "sui",
+  "discovery_date": "2026-01-25T11:13:31.511566",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

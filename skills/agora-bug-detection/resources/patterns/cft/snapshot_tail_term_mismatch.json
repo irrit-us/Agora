@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Snapshot-Tail-Term-Mismatch",
+  "protocol_type": "cft",
+  "description": "This pattern targets optimizations in consensus protocols where implementations try to \"save\" existing log entries when applying a snapshot. The vulnerability occurs when the implementation assumes that if a local log extends beyond the snapshot index, the \"tail\" is valid. It fails to recognize that a snapshot from a higher term invalidates any local history (and subsequent tail) derived from a lower term at that same index.",
+  "fault_type": "crash_recovery",
+  "bug_category": "safety",
+  "trigger_condition": "Snapshot installation occurs on a node containing uncommitted entries that extend beyond the snapshot index and belong to a divergent term.",
+  "test_template": "1.  **Setup**: Initialize a cluster (N1, N2, N3).",
+  "discovered_in_repo": "raft",
+  "discovery_date": "2026-01-27T03:05:25.623518",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 3586937,
+    "api_cost": 3.2818486
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Dependency Cycle Sequence Collision",
+  "protocol_type": "cft",
+  "description": "In leaderless or dependency-based consensus protocols (like EPaxos, Caesar, or Mencius), ordering is derived from a dependency graph rather than a single leader's log. A vulnerability exists if the execution logic (linearization) fails to handle \"perfect storms\" where:",
+  "fault_type": "concurrency_race",
+  "bug_category": "agreement",
+  "trigger_condition": "High concurrency operations on conflicting keys resulting in mutual dependencies and identical sequence number generation.",
+  "test_template": "1.  **Setup**: Initialize a cluster with 3 replicas (R1, R2, R3).",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-27T02:04:39.683324",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 563729,
+    "api_cost": 0.8747989999999999
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

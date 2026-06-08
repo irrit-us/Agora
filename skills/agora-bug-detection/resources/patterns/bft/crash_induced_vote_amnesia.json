@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Crash-induced vote amnesia enables conflicting QCs in the same round",
+  "protocol_type": "bft",
+  "description": "In Aptos SafetyRules, vote emission and persistence of SafetyData (particularly last_voted_round and last_vote) are not effectively atomic across crashes. If a validator H* signs a vote for block L in round r and crashes before the updated SafetyData is durably stored, it can restart from stale SafetyData that claims last_voted_round = r-1 and last_vote = None. After restart, an equivocating Byzantine leader can propose a conflicting block R in the same round r. Because SafetyRules trusts the regressed SafetyData, it may accept and sign a second vote for R in round r. With n = 3f+1 validators (e.g., 4 validators with f=1), the attacker can assemble two conflicting QCs at the same (epoch, round): QC_L with voters {H*, Group A, B0} and QC_R with voters {H*, Group B, B0}, each using 2f+1 signatures and sharing the honest validator H*. This violates per-validator vote uniqueness and quorum intersection, and can be extended to conflicting 3-chains and double commits.",
+  "fault_type": "byzantine_leader + crash_recovery + persistence_lag",
+  "bug_category": "safety",
+  "trigger_condition": "1) Honest validator H* votes for block L in round r, but SafetyData persistence lags so durable last_voted_round < r when H* crashes. 2) On restart, H* reloads stale SafetyData that forgets the vote in round r. 3) A Byzantine leader reuses the same parent QC to propose a conflicting block R in the same round r. 4) SafetyRules, trusting the stale last_voted_round, signs a second vote for R in round r. 5) With 3f+1 validators and f Byzantine validators, the attacker combines honest votes from disjoint honest groups plus the Byzantines to form two conflicting QCs for L and R in the same epoch/round.",
+  "test_template": "Within a SafetyRules or consensus test harness: (1) Construct an epoch with a single-validator SafetyRules instance modelling the crashable honest validator. (2) Initialize SafetyData with last_voted_round = r-1 and last_vote = None. (3) Use SafetyRules to sign a vote for proposal L at round r extending a parent QC; assert that persistent storage after the vote reflects last_voted_round = r. (4) Simulate crash by dropping SafetyRules and reconstructing it using the original pre-crash SafetyData (last_voted_round = r-1), thereby modeling vote amnesia. (5) Create a conflicting proposal R at the same epoch and round r extending the same parent QC with a different payload/block id. (6) Ask SafetyRules-after-crash to construct_and_sign_vote for R. (7) Assert that either the second vote is rejected or, if returned, has the same block id as L. Optionally, if a distinct second vote is produced, embed the votes into an n=4 validator set and construct two QuorumCerts QC_L and QC_R with overlapping honest voters to demonstrate the safety violation.",
+  "discovered_in_repo": "aptos-core",
+  "discovery_date": "2025-12-10T03:32:59.589191",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

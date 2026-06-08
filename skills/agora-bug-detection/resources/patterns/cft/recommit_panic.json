@@ -1,0 +1,22 @@
+{
+  "tags": [
+    "bug_pattern",
+    "initialization_order",
+    "panic",
+    "crash_recovery",
+    "fabric",
+    "msp"
+  ],
+  "context": {
+    "issue_url": "https://github.com/hyperledger/fabric/issues/4229",
+    "bug_category": "initialization",
+    "pattern_type": "initialization_order_dependency",
+    "confirmed_by": "contributor (yacovm)",
+    "fix_status": "backported to v2.2 and v2.5",
+    "affected_component": "peer recommitLostBlocks",
+    "root_cause": "ledger initialized before MSP manager"
+  },
+  "pattern_id": "Initialization order panic - ledger initialized before MSP manager during crash recovery",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: Initialization Order Dependency Panic. DESCRIPTION: Peer panics in recommitLostBlocks() when processing a chaincode deployment with collection configuration change during crash recovery. ROOT CAUSE: Initialization order bug - the ledger is initialized at line 512 in peer.go, but the MSP manager is initialized later at createChannel() (line 519). When recommitLostBlocks() needs to process collection config changes, it requires MSP manager to validate policies, but MSP manager is not yet ready, causing a panic. SCENARIO: (1) Peer crashes or restarts, (2) During recovery, recommitLostBlocks() is called, (3) A block contains chaincode deployment with collection config change, (4) Processing requires MSP manager for policy validation, (5) MSP manager not initialized yet, (6) Panic occurs. FIX: Ensure MSP manager is initialized before ledger initialization, or defer operations that require MSP manager until it's ready. LESSON: In crash recovery paths, carefully audit initialization order dependencies. Components that depend on each other must be initialized in correct order. Recovery code paths often exercise different execution orders than normal startup, exposing initialization bugs that don't appear during normal operation."
+}

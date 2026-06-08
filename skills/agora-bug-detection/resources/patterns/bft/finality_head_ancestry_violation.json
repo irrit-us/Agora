@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Finality-Head Ancestry Violation",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern occurs in blockchain execution layers that accept forkchoice updates from consensus layers without validating critical ancestry relationships. The core issue is the failure to enforce the invariant: finalized \u2286 safe \u2286 head (where \u2286 means \"is an ancestor of or equal to\").",
+  "fault_type": "byzantine_consensus_client",
+  "bug_category": "safety",
+  "trigger_condition": "A Byzantine or buggy consensus client sends a forkchoice update where the head block is not a descendant of the finalized block, violating the fundamental chain ancestry invariant.",
+  "test_template": "```",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T14:20:06.249714",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 2571591,
+    "api_cost": 8.654684999999999
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

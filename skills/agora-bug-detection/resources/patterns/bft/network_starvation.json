@@ -1,0 +1,27 @@
+{
+  "tags": [
+    "bug_pattern",
+    "liveness",
+    "network",
+    "head_of_line_blocking",
+    "bounded_executor",
+    "sui",
+    "bft"
+  ],
+  "context": {
+    "issue_url": "https://github.com/MystenLabs/sui/issues/5204",
+    "bug_category": "liveness",
+    "pattern_type": "head_of_line_blocking",
+    "affected_component": "network/BoundedExecutor",
+    "confirmed_by": "contributor (dmitri-perelman)"
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-05T15:31:00",
+  "embedded": false,
+  "pattern_id": "BoundedExecutor head-of-line blocking causes network starvation to all validators",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Network Starvation from BoundedExecutor Head-of-Line Blocking. DESCRIPTION: Using one BoundedExecutor per destination validator causes network starvation. When the executor for one specific validator runs out of tickets, the send_message operation becomes blocking. If this blocking operation exists in a shared code path (e.g., helper handling PayloadAvailabilityRequest or CertificatesRequest), it blocks message sending to ALL validators, not just the overloaded one. ROOT CAUSE: The BoundedExecutor design creates per-destination blocking that propagates to shared code paths. When one destination is slow or unresponsive, the blocking wait for permits causes head-of-line blocking affecting all other destinations. FIX: For UnreliableNetwork, drop messages to overloaded peers instead of blocking. For ReliableNetwork, use spawn_with_permit to preemptively acquire permits before entering tokio::select branches. LESSON: Per-destination resource limits (like executor permits) must not block shared code paths. Use non-blocking alternatives (try_acquire, drop on failure) for unreliable paths, and pre-acquire resources before entering multiplexed select branches for reliable paths."
+}

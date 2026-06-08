@@ -1,0 +1,23 @@
+{
+  "tags": [
+    "bug_pattern",
+    "race_condition",
+    "nil_pointer",
+    "map_access",
+    "gossip",
+    "fabric",
+    "pubsub"
+  ],
+  "context": {
+    "issue_url": "https://github.com/hyperledger/fabric/issues/5119",
+    "bug_category": "race_condition",
+    "pattern_type": "map_access_without_existence_check",
+    "confirmed_by": "contributor (yacovm)",
+    "code_location": "gossip/util/pubsub.go unSubscribe()",
+    "trigger": "topic collision with concurrent unsubscribe",
+    "production_frequency": "1-2 times per month with 50+ peers"
+  },
+  "pattern_id": "Map access without existence check causes nil panic when concurrent unsubscribe deletes entry",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: Map Access Without Existence Check Under Concurrent Deletion. DESCRIPTION: Peer randomly panics with nil pointer dereference in gossip/util PubSub.unSubscribe(), occurring 1-2 times per month in production with 50+ peers and 50 channels. ROOT CAUSE: Topic collision race condition - unSubscribe() directly accesses ps.subscriptions[sub.top].Remove(sub) without checking if the map entry exists. When multiple subscriptions share the same topic (collision), one goroutine may delete the entire topic entry while another goroutine tries to call Remove() on the already-deleted entry, causing nil pointer dereference. SCENARIO: (1) Multiple subscriptions exist for same topic, (2) Goroutine A acquires lock, removes subscription, topic entry now empty so deleted, (3) Goroutine A releases lock, (4) Goroutine B acquires lock, tries ps.subscriptions[sub.top].Remove(), (5) Map entry doesn't exist, returns nil, (6) Calling Remove() on nil causes panic. FIX: Check if subscription exists before accessing: 'subscription, exists := ps.subscriptions[sub.top]; if !exists { return }'. LESSON: When accessing map entries that may be concurrently deleted, always check existence before use, even under mutex protection. The mutex prevents concurrent access but doesn't prevent checking stale assumptions about map contents. Pattern: get-then-check is safer than assume-and-access for maps with concurrent deletions."
+}

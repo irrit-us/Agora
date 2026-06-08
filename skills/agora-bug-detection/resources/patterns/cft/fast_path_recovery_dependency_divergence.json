@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Fast Path Recovery Dependency Divergence",
+  "protocol_type": "cft",
+  "description": "A recovering replica may conservatively update dependencies for a command that was already Fast-Committed and Executed by the original leader, leading to a different execution order and safety violation. The original leader executes A (deps={}) then B (deps={}). The recovering replica executes B (deps={}) then A (deps={B}). This results in divergent state.",
+  "fault_type": "crash_fault",
+  "bug_category": "safety",
+  "trigger_condition": "Fast Path Commit followed by Leader Crash and Recovery with Concurrent Command",
+  "test_template": "1. Setup 3 replicas.\n2. R0 Fast Commits CmdA with deps={} and Executes it.\n3. R0 crashes.\n4. R2 proposes CmdB, R1 sees it.\n5. R1 recovers CmdA, sees CmdB, and updates CmdA's deps to include CmdB.\n6. R1 and R2 commit CmdA with deps={CmdB}.\n7. Verify execution order divergence: R0 executed A then B (if it learns B), R1 executed B then A.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-24T15:55:03.765959",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}
