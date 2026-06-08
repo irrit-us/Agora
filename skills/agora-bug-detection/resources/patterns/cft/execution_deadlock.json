@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Execution deadlock from unbounded busy-wait in Tarjan SCC when dependency not committed",
+  "protocol_type": "cft",
+  "bug_category": "liveness",
+  "description": "Execution engine deadlock due to unbounded busy-wait in strongconnect when processing transitive dependencies",
+  "fault_type": "deadlock",
+  "trigger_condition": "1) Command X is COMMITTED with dependencies. 2) Transitive dependency Z is PREACCEPTED but not COMMITTED. 3) Z's leader crashed. 4) strongconnect enters unbounded busy-wait for Z. 5) Recovery for Z cannot be triggered because executeCommands loop is blocked.",
+  "root_cause": "Unbounded busy-wait loop in strongconnect (Tarjan's SCC algorithm) with no timeout. Recovery trigger is in the blocked executeCommands loop, creating circular dependency: execution waits for recovery, recovery cannot start.",
+  "fix_approach": "Add timeout to busy-wait loop. Implement async recovery triggering separate from execution loop.",
+  "confirmed_in_repos": [
+    "efficient-epaxos"
+  ],
+  "discovered_at": "2025-12-01",
+  "source_issue": "https://github.com/efficient/epaxos/issues/26",
+  "source_pr": null
+}

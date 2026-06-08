@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Unpersisted Promise Violation (Phantom Promise)",
+  "protocol_type": "cft",
+  "description": "This pattern occurs in Consensus/CFT protocols (Paxos, Raft, ZAB) when a node acknowledges a proposal or updates its internal logical clock (Term, Epoch, Sequence Number) without first flushing that state to stable storage.",
+  "fault_type": "crash_recovery",
+  "bug_category": "safety",
+  "trigger_condition": "High-concurrency proposals combined with immediate node crashes (power failure simulation) after network transmission.",
+  "test_template": "1.  **Setup**: Establish a cluster of 3 nodes (Leader L, Follower F, Partitioned/Lagging P).",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-27T02:51:47.575662",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 3092341,
+    "api_cost": 3.7092007999999996
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

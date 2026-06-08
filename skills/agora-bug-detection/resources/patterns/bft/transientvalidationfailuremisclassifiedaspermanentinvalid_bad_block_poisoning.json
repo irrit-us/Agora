@@ -1,0 +1,19 @@
+{
+  "pattern_id": "TransientValidationFailureMisclassifiedAsPermanentInvalid (Bad-Block Poisoning)",
+  "protocol_type": "bft",
+  "description": "Distributed consensus stacks often distinguish:",
+  "fault_type": "crash_recovery + network_reordering + partial_data_loss (transient local state gap)",
+  "bug_category": "agreement (primary) / liveness (secondary)",
+  "trigger_condition": "- A subset of replicas/nodes attempts to validate a proposed block/command while required local prerequisite data is temporarily unavailable (e.g., missing/pruned state, snapshot not ready, partial DB restore).",
+  "test_template": "(portable to other implementations):",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T01:53:18.241403",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 36351534,
+    "api_cost": 15.68134785
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

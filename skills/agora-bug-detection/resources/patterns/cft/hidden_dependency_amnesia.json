@@ -1,0 +1,18 @@
+{
+  "pattern_id": "Hidden Dependency Amnesia",
+  "protocol_type": "cft",
+  "description": "The protocol's recovery mechanism fails to preserve established dependencies if the intersection node (which holds the dependency link) loses state (amnesia). This leads to previously ordered commands being treated as concurrent during recovery, resulting in execution order reversal via deterministic tie-breaking. Specifically, if a command A depends on B, but the only replica knowing this dependency crashes and restarts with empty state, other replicas may recover A and B independently without the dependency link.",
+  "fault_type": "crash_fault",
+  "bug_category": "agreement",
+  "trigger_condition": "Intersection node crash + amnesia + concurrent recovery of dependent commands",
+  "test_template": "1. Setup 5 replicas.\n2. Propose CmdA (R1) and CmdB (R0).\n3. Ensure R2 accepts A then B (B depends on A).\n4. Ensure R3 accepts A (no B).\n5. Ensure R4 accepts B (no A).\n6. Commit and execute on R2 (A->B).\n7. Crash R0, R1.\n8. Crash R2 and restart with empty log (amnesia).\n9. Recover A on R3 (sees empty R2, empty R4 for A). Commit A with deps={}.\n10. Recover B on R4 (sees empty R2, empty R3 for B). Commit B with deps={}.\n11. Execute on R3. Observe B->A execution (reversal).",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-24T18:27:40.412882",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [
+    "raft"
+  ],
+  "confirmed_in_repos": []
+}

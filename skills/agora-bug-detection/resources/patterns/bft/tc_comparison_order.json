@@ -1,0 +1,22 @@
+{
+  "tags": [
+    "bug_pattern",
+    "statement_order",
+    "comparison_bug",
+    "synchronizer",
+    "hotstuff",
+    "timeout_certificate"
+  ],
+  "context": {
+    "issue_url": "https://github.com/relab/hotstuff/issues/39",
+    "bug_category": "logic_error",
+    "pattern_type": "comparison_before_assignment",
+    "confirmed_by": "member (johningve)",
+    "code_location": "synchronizer/synchronizer.go AdvanceView()",
+    "incorrect_pattern": "v := 0; compare v; assign v",
+    "correct_pattern": "assign v; compare v"
+  },
+  "pattern_id": "Statement ordering bug - comparing variable before assignment causes highTC never updated",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Statement Ordering Bug - Comparison Before Assignment. DESCRIPTION: In Synchronizer.AdvanceView(), the variable v is compared against s.highTC.View() before being assigned the actual tc.View() value. Since v is initialized to 0, the comparison 'v > s.highTC.View()' is always false (unless highTC is negative, which is impossible), causing highTC to never be updated with new timeout certificates. ROOT CAUSE: Code ordering mistake - the assignment 'v = tc.View()' appears AFTER the comparison that uses v. The developer likely intended to first extract the view from the TC, then compare it. INCORRECT CODE: 'v := 0; if v > s.highTC.View() { s.highTC = tc }; v = tc.View()'. CORRECT CODE: 'v = tc.View(); if v > s.highTC.View() { s.highTC = tc }'. IMPACT: Timeout certificates are never recorded as the new highTC, potentially breaking view synchronization. Nodes may fail to advance views properly during timeout scenarios, affecting liveness. FIX: Move 'v = tc.View()' before the comparison. LESSON: When comparing values derived from input data, always extract/assign the value before using it in comparisons. This pattern of 'initialize to zero, compare, then assign' is a common source of bugs. Code review should check that variables used in comparisons have been properly initialized with meaningful values."
+}

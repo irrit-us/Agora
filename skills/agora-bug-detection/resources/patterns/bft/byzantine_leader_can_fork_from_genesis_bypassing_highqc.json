@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Byzantine leader can fork from Genesis bypassing HighQC",
+  "protocol_type": "bft",
+  "description": "The VoteRule in ChainedHotStuff only checks if a proposal extends from bLock (the locked block) but does not verify that the proposal extends from the HighQC block. This allows a Byzantine leader to propose blocks that extend from very old blocks (including Genesis), completely bypassing the established chain history certified by HighQC.\n\nIn the test scenario:\n- Established chain: Genesis \u2192 B1 \u2192 B2 \u2192 B3 \u2192 B4 \u2192 B5\n- HighQC points to B5 (view 5)\n- bLock is Genesis (view 0)\n- Byzantine leader proposes B6' extending from Genesis (view 0)\n- VoteRule checks: qcBlock.View() > bLock.View() \u2192 Genesis.View(0) > Genesis.View(0) \u2192 FALSE\n- VoteRule then checks: blockchain.Extends(B6', bLock) \u2192 Extends(B6', Genesis) \u2192 TRUE\n- Result: VoteRule returns TRUE, accepting the malicious proposal\n\nThe bug is that VoteRule should ensure proposals extend from HighQC, not just from bLock. This is a severe safety violation as it allows building alternative chains that compete with the legitimate chain.\n\nRoot cause: The liveness condition checks qcBlock.View() > bLock.View(), but when bLock is Genesis and the proposal's QC also points to Genesis, this check fails and falls through to the safety check which only verifies extension from bLock, not from HighQC.",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "Byzantine leader proposes a block that extends from an old block (e.g., Genesis) instead of the HighQC block, while the locked block (bLock) is still at Genesis or an early block. The proposal's QC points to the same old block as the parent.",
+  "test_template": "1. Build a deep blockchain (e.g., Genesis \u2192 B1 \u2192 B2 \u2192 B3 \u2192 B4 \u2192 B5)\n2. Update HighQC to point to the latest block (B5)\n3. Ensure bLock is at Genesis or an early block\n4. Byzantine leader proposes a new block extending from Genesis (or early block) with QC pointing to Genesis\n5. Test if Voter.Verify() and VoteRule accept this proposal\n6. Assert that the proposal should be rejected because it doesn't extend from HighQC\n7. Verify that no vote is generated and HighQC doesn't regress\n\nKey assertions:\n- Voter.Verify() should reject proposals not extending from HighQC\n- VoteRule should return false for such proposals\n- No vote should be sent\n- HighQC should remain pointing to the latest block",
+  "discovered_in_repo": "hotstuff",
+  "discovery_date": "2026-01-25T10:41:15.556676",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

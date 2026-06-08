@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Mutual Dependency Cycle Recovery Divergence",
+  "protocol_type": "cft",
+  "description": "The EPaxos recovery protocol can create mutual dependency cycles (A->B and B->A) when two conflicting commands are recovered concurrently by different replicas. If the original execution was on the Fast Path (A executed alone), the recovery process might introduce a dependency on a later command B (which depends on A). The cycle resolution logic (SCC) then breaks the cycle deterministically (e.g., by ReplicaID), potentially ordering B before A, violating the original execution history (divergence). This occurs because recovery conservatively merges dependencies without verifying if the resulting graph is consistent with the already executed prefix.",
+  "fault_type": "crash_fault",
+  "bug_category": "safety",
+  "trigger_condition": "Concurrent recovery of conflicting commands where one was already executed on the Fast Path, combined with specific failure pattern (Leader crash -> New Leader Proposal -> Witness Crash -> Original Leader Restart).",
+  "test_template": "1. Setup 3 replicas (R0, R1, R2).\n2. R0 proposes CmdA (Fast Path). R0, R2 accept. R0 commits and executes A.\n3. R0 crashes (loses committed state, remembers accepted).\n4. R1 proposes CmdB (conflicts with A). R1 accepts B (deps={}). R2 accepts B (deps={A}).\n5. R2 crashes.\n6. R0 restarts and recovers A. Contacts R1. R1 has B. R0 updates A deps to {B}. Commits A.\n7. R1 recovers B. Contacts R0. R0 has A. R1 updates B deps to {A}. Commits B.\n8. Cycle A->B->A exists.\n9. Verify execution order. If B executes before A, divergence occurred.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-24T16:21:24.074288",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Fast Path Recovery Dependency Divergence",
+  "protocol_type": "cft",
+  "description": "The recovery procedure for a Fast Path instance can incorrectly inject a conflicting dependency (CmdB) into the recovered instance (CmdA), even if CmdB already depends on CmdA. This creates a dependency cycle (A <-> B) or reverses the execution order on the recovering node compared to the original leader which executed on the Fast Path. This leads to state divergence between replicas.",
+  "fault_type": "crash_fault",
+  "bug_category": "safety",
+  "trigger_condition": "Fast Path commit followed by leader crash and concurrent conflicting proposal during recovery.",
+  "test_template": "1. Setup 3 replicas (R0, R1, R2).\n2. R0 Fast Commits CmdA with deps={}.\n3. R0 executes CmdA.\n4. R0 crashes.\n5. R2 proposes CmdB.\n6. R1 sees CmdB and accepts it.\n7. R1 recovers CmdA.\n8. R1 updates CmdA deps to include CmdB (creating cycle or reverse order).\n9. R1 executes CmdB then CmdA.\n10. Verify R0 and R1 have different final states.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-24T16:48:25.353174",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

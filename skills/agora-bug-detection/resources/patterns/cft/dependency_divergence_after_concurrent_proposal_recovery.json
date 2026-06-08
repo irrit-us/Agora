@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Dependency Divergence After Concurrent Proposal Recovery",
+  "protocol_type": "cft",
+  "description": "When two replicas concurrently propose commands and message reordering causes different replicas to compute different dependency sets during the PreAccept phase, a subsequent crash-recovery cycle may fail to properly reconcile these divergent dependencies. This can lead to different replicas committing the same instance with different (Seq, Deps) attributes, resulting in different execution orders across replicas.\n\nThe vulnerability manifests when:\n1. Two replicas (R0, R1) concurrently propose conflicting commands (A, B) at different instances\n2. Message reordering causes different replicas to see the proposals in different orders\n3. Some replicas compute A depends on B, others compute B depends on A\n4. One proposer crashes before committing\n5. Recovery (Prepare phase) receives conflicting dependency information from different replicas\n6. Recovery logic fails to ensure all replicas converge on the same dependency set\n7. Different replicas end up with different committed attributes for the same instance\n8. Execution produces different final states across replicas (agreement violation)\n\nThe bug is detected by:\n- Checking per-instance agreement: All replicas must have identical (Seq, Deps) for each committed instance\n- Checking execution-order agreement: All replicas must produce identical final state after executing conflicting commands\n- For conflicting commands on the same key, different final values indicate different execution orders",
+  "fault_type": "crash_recovery_with_message_reordering",
+  "bug_category": "agreement",
+  "trigger_condition": "Concurrent proposals + message reordering + crash before commit + recovery with divergent dependency views",
+  "test_template": "1. Create N replicas (N >= 5 for EPaxos)\n2. Create two conflicting commands A and B on the same key with different values\n3. Model divergent PreAccept states: Some replicas see A first (B depends on A), others see B first (A depends on B)\n4. Simulate crash of one proposer before commit\n5. Model recovery outcome: Different replicas commit with different dependency sets\n6. Check per-instance agreement: Verify all replicas have same (Seq, Deps) for each instance\n7. Execute commands on all replicas\n8. Check final state agreement: Verify all replicas have same final value for the conflicting key\n9. If final values differ, this indicates different execution orders (agreement violation)",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-25T10:16:07.079609",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

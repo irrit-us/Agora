@@ -1,0 +1,28 @@
+{
+  "tags": [
+    "bug_pattern",
+    "race_condition",
+    "bft",
+    "cometbft",
+    "mempool",
+    "mutex",
+    "atomic",
+    "synchronization"
+  ],
+  "context": {
+    "issue_url": "https://github.com/cometbft/cometbft/issues/642",
+    "bug_category": "race_condition",
+    "pattern_type": "data_race",
+    "source_number": 642,
+    "is_pr": false
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-04T16:55:00",
+  "embedded": false,
+  "pattern_id": "Mixed mutex and atomic access patterns causing data race in mempool height field",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: CListMempool has data race due to mixed mutex and atomic access patterns. DESCRIPTION: The Update() method writes to the height field assuming updateMtx has been locked by caller. However, resCbFirstTime() reads from the height field WITHOUT taking that lock. The height field is commented as 'atomic' suggesting sync/atomic access, but actual code uses neither consistent locking nor atomic operations. ROOT CAUSE: Mixing individually-atomic fields with a mutex that governs arbitrary fields creates impossible-to-verify synchronization. Some code paths assume lock is held, others don't acquire it, and the 'atomic' comment is misleading documentation. LESSON: Never mix mutex-based and atomic-based synchronization for the same field. Choose one approach: 1) Use mutex consistently for all accesses to protected fields; 2) Use sync/atomic functions exclusively and document the memory ordering guarantees; 3) If mixing is unavoidable, document precisely which lock protects which fields and enforce it with code review or static analysis. Comments like 'atomic' without enforcement are bugs waiting to happen."
+}

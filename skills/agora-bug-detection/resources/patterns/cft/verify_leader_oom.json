@@ -1,0 +1,28 @@
+{
+  "tags": [
+    "bug_pattern",
+    "liveness",
+    "cft",
+    "hashicorp-raft",
+    "memory_leak",
+    "oom",
+    "verify_leader",
+    "async_notify"
+  ],
+  "context": {
+    "issue_url": "https://github.com/hashicorp/raft/issues/291",
+    "bug_category": "liveness",
+    "pattern_type": "memory_leak",
+    "source_number": 291,
+    "is_pr": false
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-04T17:30:00",
+  "embedded": false,
+  "pattern_id": "VerifyLeader OOM - notify list grows unbounded when futures not removed from repl.notify on error",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: OOM caused by VerifyLeader notify list memory leak when node fails. DESCRIPTION: When a node fails, the VerifyLeader mechanism causes memory to grow unboundedly leading to OOM. The verifyLeader() function adds the verify future 'v' to repl.notify list for each replica. When heartbeat/AppendEntries returns error, 'v' is deleted from r.leaderState.notify but NOT removed from repl.notify. This causes the notify list to grow infinitely. ROOT CAUSE: Asymmetric cleanup - the future is tracked in two places (leaderState.notify and repl.notify) but only removed from one on error. The replication goroutine continues to hold references to completed/failed futures, preventing garbage collection. LESSON: In distributed systems with async notification patterns: 1) Track where futures/callbacks are registered and ensure symmetric cleanup; 2) When a future completes (success or failure), remove it from ALL tracking structures; 3) Use weak references or explicit lifecycle management for notification subscriptions; 4) Monitor memory usage under failure conditions - leaks often only manifest when nodes fail; 5) Consider using defer or RAII patterns to ensure cleanup happens on all code paths."
+}

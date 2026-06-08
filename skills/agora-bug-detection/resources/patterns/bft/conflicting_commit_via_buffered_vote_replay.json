@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Conflicting Commit via Buffered Vote Replay",
+  "protocol_type": "bft",
+  "description": "The VotingMachine buffers votes for missing blocks but fails to re-verify safety invariants (specifically, \"single commit per height\" or \"conflicting finalized state\") when those votes are replayed. By injecting votes for two conflicting branches and then delivering the corresponding blocks, an attacker can trick the node into forming QCs for and committing to both branches.",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "Votes for conflicting blocks are buffered due to missing blocks, then both blocks are delivered sequentially.",
+  "test_template": "1. Create conflicting blocks A and B at View V.\n2. Send quorum of votes for A (buffered because A is missing).\n3. Send quorum of votes for B (buffered because B is missing).\n4. Deliver A via ProposeMsg -> Triggers replay -> Forms QC_A.\n5. Deliver B via ProposeMsg -> Triggers replay -> Should NOT form QC_B.",
+  "discovered_in_repo": "hotstuff",
+  "discovery_date": "2026-01-24T15:55:51.222200",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

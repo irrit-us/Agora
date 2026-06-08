@@ -95,6 +95,18 @@ When a bug is confirmed, the system automatically enters **Bug Exploitation Mode
 | sui | BFT | Rust | Sui blockchain consensus |
 | library | BFT | Java | BFT-SMaRt library |
 
+## Skill (Agent-Native Interface)
+
+Besides the Python framework, this project also provides a self-contained agent skill that works with any coding agent (Codex, Claude Code, Gemini, Cursor, etc.).
+
+### Install
+
+```bash
+SKILL_BASE_URL=https://github.com/lebronlambert/Agora/tree/main npx skill skills/agora-bug-detection
+```
+
+The skill auto-discovers the protocol type (CFT/BFT), language, and structure — no configuration needed. See [`skill/README.md`](skill/README.md) for details.
+
 ## Installation
 
 ```bash
@@ -522,9 +534,9 @@ If you use this work, please cite:
 
 ```bibtex
 @inproceedings{
-anonymous2026agora,
+liu2026agora,
 title={Agora: Toward Autonomous Bug Detection in Production-Level Consensus Protocols with {LLM} Agents},
-author={Anonymous},
+author={Xiang Liu, Sa Song, Zhaowei Zhang, Huiying Lan, Jason Zeng, Ming Wu, Michael Heinrich, Yong Sun, Ceyao Zhang},
 booktitle={Forty-third International Conference on Machine Learning},
 year={2026},
 url={https://openreview.net/forum?id=IU9dsf2LZA}

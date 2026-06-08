@@ -1,0 +1,28 @@
+{
+  "tags": [
+    "bug_pattern",
+    "liveness",
+    "bft",
+    "hotstuff",
+    "duplicate_votes",
+    "quorum_certificate",
+    "attack_vector"
+  ],
+  "context": {
+    "issue_url": "https://github.com/relab/hotstuff/issues/244",
+    "fix_pr": "https://github.com/relab/hotstuff/pull/246",
+    "bug_category": "liveness",
+    "pattern_type": "duplicate_message_handling",
+    "source_number": 244,
+    "is_pr": false
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-04T18:00:00",
+  "embedded": false,
+  "pattern_id": "Duplicate votes prevent QC formation - inconsistent duplicate handling between reception and aggregation",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Duplicate votes prevent quorum certificate formation, enabling liveness attack. DESCRIPTION: The voting machine does not filter duplicate votes when receiving them, but CreateQuorumCert checks for duplicates and returns ErrCombineOverlap. This inconsistency means if a faulty replica sends the same vote twice, no quorum certificate can be formed. A malicious replica can exploit this to undermine system liveness by simply duplicating its votes. ROOT CAUSE: Inconsistent duplicate handling between vote reception and QC creation. The voting machine accepts duplicates into its collection, but the cryptographic signature combination step rejects overlapping signers. This creates a situation where enough votes are collected but they cannot be combined. LESSON: In BFT voting systems: 1) Filter duplicates at the EARLIEST point (reception), not at the final aggregation step; 2) Duplicate message handling must be consistent across all layers; 3) Consider this a potential attack vector - malicious nodes can exploit any inconsistency; 4) Test with 'twins' scenarios where replicas send duplicate/conflicting messages; 5) Validate that duplicate filtering doesn't create new attack vectors (e.g., replay attacks)."
+}

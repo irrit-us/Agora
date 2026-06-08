@@ -1,0 +1,29 @@
+{
+  "tags": [
+    "bug_pattern",
+    "safety",
+    "bft",
+    "hotstuff",
+    "commit_rule",
+    "twins",
+    "dummy_blocks",
+    "paper_implementation_gap"
+  ],
+  "context": {
+    "issue_url": "https://github.com/relab/hotstuff/issues/249",
+    "bug_category": "safety",
+    "pattern_type": "safety_violation",
+    "source_number": 249,
+    "is_pr": false,
+    "test_case": "TestSafetyWithTwins"
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-04T17:05:00",
+  "embedded": false,
+  "pattern_id": "Safety violation in chained HotStuff due to missing dummy blocks assumption in commit rule",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Safety violation in chained HotStuff due to missing dummy blocks assumption. DESCRIPTION: Replicas can commit different blocks on different branches in the presence of an attacker or twin nodes. The commit rule was implemented verbatim from the HotStuff paper, but the paper assumes dummy blocks are inserted for every view such that parent's view is always current_view - 1. The actual implementation does not use dummy blocks - parent's view equals the view in the QC instead. ROOT CAUSE: Gap between paper specification and implementation. The paper's commit rule correctness depends on the invariant that views are consecutive (enforced by dummy blocks). Without dummy blocks, the view gap allows conflicting commits. The TestSafetyWithTwins test demonstrates this violation. LESSON: When implementing BFT protocols from papers: 1) Identify ALL implicit assumptions in the protocol specification; 2) Dummy blocks/no-ops ensure view continuity which many proofs depend on; 3) If optimizing away dummy blocks, re-verify the commit rule still holds; 4) Use formal methods or exhaustive testing (like twins testing) to verify safety properties; 5) Paper proofs often assume idealized conditions that implementations must explicitly enforce."
+}

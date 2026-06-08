@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Read-Write Inconsistency via Recovery Reordering",
+  "protocol_type": "cft",
+  "description": "The protocol's recovery logic allows reordering of a Fast-Committed \"Read\" operation after a concurrent \"Write\" operation, causing the Read to return different values on different nodes (Data Corruption).\nSpecifically, if a leader Fast-Commits a command A (Read) with empty deps, executes it (reading 0), and then crashes, a recovery node might see a concurrent command B (Write 5) and update A's dependencies to include B. This forces A to execute after B on the recovery node, reading 5. This violates linearizability as the client already received 0.",
+  "fault_type": "crash_fault",
+  "bug_category": "safety",
+  "trigger_condition": "Fast Path Commit followed by Leader Crash and Concurrent Write during Recovery",
+  "test_template": "1. Setup 3 replicas.\n2. R0 proposes CmdA (Read), gets Fast Quorum, Commits, Executes (Result X).\n3. R0 crashes.\n4. R2 proposes CmdB (Write Y).\n5. R1 recovers CmdA. R1 sees CmdB.\n6. R1 updates CmdA deps to include CmdB.\n7. R1 executes CmdB then CmdA (Result Y).\n8. Assert that R1's execution result matches R0's (X == Y). Fail if X != Y.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-24T16:11:32.208529",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

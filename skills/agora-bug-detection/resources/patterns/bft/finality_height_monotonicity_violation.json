@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Finality Height Monotonicity Violation",
+  "protocol_type": "bft",
+  "description": "In distributed consensus protocols with explicit finalization mechanisms (BFT protocols, PoS with finality gadgets like Casper FFG, PBFT variants), the finalized block height must be monotonically non-decreasing. Once a block at height H is finalized, no block at height < H should ever be finalized in the future.",
+  "fault_type": "byzantine_consensus_client",
+  "bug_category": "safety",
+  "trigger_condition": "A Byzantine or compromised consensus layer client sends state update messages (e.g., ForkchoiceUpdated, SetHead, Finalize) that attempt to move the finalized block pointer to a block at a lower height than the currently finalized block, violating the monotonicity property of finalization.",
+  "test_template": "```",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T14:27:01.545545",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 3117892,
+    "api_cost": 10.592196
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

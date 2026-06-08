@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Conflicting Commit via Buffered Vote Replay",
+  "protocol_type": "bft",
+  "description": "The VotingMachine buffers votes for missing blocks. When a ProposeMsg arrives, it replays all buffered votes. If an attacker sends votes for two conflicting blocks (A and B) at the same view, and then delivers the blocks, the VotingMachine replays votes for both. Since the view state is not updated immediately (or the check is against the committed state which hasn't advanced yet), the VotingMachine forms Quorum Certificates (QCs) for BOTH conflicting blocks. This allows an attacker to fork the chain or cause a split-brain scenario where the node believes two conflicting histories are valid.",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "Buffered votes for conflicting blocks replayed simultaneously before view state advances.",
+  "test_template": "1. Setup VotingMachine and EventLoop.\n2. Create two conflicting blocks (A and B) for the same view.\n3. Buffer votes for A (block missing).\n4. Buffer votes for B (block missing).\n5. Store both blocks in the blockchain.\n6. Trigger vote replay (e.g., via ProposeMsg).\n7. Assert that QCs are formed for BOTH blocks (Safety Violation).",
+  "discovered_in_repo": "hotstuff",
+  "discovery_date": "2026-01-24T16:00:23.198576",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

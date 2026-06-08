@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Byzantine leader equivocation with different HighQCs causes honest node vote splitting",
+  "protocol_type": "bft",
+  "description": "A Byzantine leader can exploit weak HighQC validation in the VoteRule by sending different proposals with different QCs to different subsets of honest nodes in the same view. The VoteRule in ChainedHotStuff only checks if: (1) the proposal's QC block view > bLock view, OR (2) the proposal extends bLock. It does NOT verify that the proposal uses the highest QC known to the node. This allows a Byzantine leader to create two proposals for the same view: P1 with an old QC (e.g., QC1 for block B1) and P2 with the current HighQC (e.g., QC3 for block B3). When P1 is sent to nodes {N1, N2} and P2 is sent to node {N3}, all nodes accept their respective proposals because both satisfy the VoteRule (they extend bLock). This causes honest nodes to vote for different blocks in the same view, violating safety by allowing potential state divergence.",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "Byzantine leader sends equivocating proposals with different QCs (old vs current HighQC) to different subsets of honest nodes in the same view. Requires network that allows selective message delivery.",
+  "test_template": "1. Create blockchain with multiple blocks: Genesis \u2192 B1 \u2192 B2 \u2192 B3\n2. Create QCs for each block (QC1, QC2, QC3)\n3. Store blockchain on all honest nodes\n4. Byzantine leader creates two proposals for same view V:\n   - P1: extends old block (e.g., B1) with old QC (QC1)\n   - P2: extends current block (e.g., B3) with current QC (QC3)\n5. Send P1 to subset of honest nodes {N1, N2}\n6. Send P2 to different subset {N3}\n7. Verify that Voter.Verify() accepts both proposals (BUG)\n8. Verify that OnValidPropose() generates votes for both proposals\n9. Check that different nodes voted for different blocks in same view (safety violation)",
+  "discovered_in_repo": "hotstuff",
+  "discovery_date": "2026-01-25T10:35:13.254304",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

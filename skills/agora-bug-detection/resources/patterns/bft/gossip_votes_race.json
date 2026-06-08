@@ -1,0 +1,27 @@
+{
+  "tags": [
+    "bug_pattern",
+    "race_condition",
+    "bft",
+    "cometbft",
+    "consensus",
+    "gossip",
+    "vote_extensions"
+  ],
+  "context": {
+    "issue_url": "https://github.com/cometbft/cometbft/issues/674",
+    "bug_category": "race_condition",
+    "pattern_type": "consensus_gossip_race",
+    "source_number": 674,
+    "is_pr": false
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-04T16:58:00",
+  "embedded": false,
+  "pattern_id": "Race between gossip routine reading ConsensusParams and consensus state updates during finalize",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Race condition between gossipVotesRoutine and consensus state updates. DESCRIPTION: Data race detected between gossipVotesRoutine reading ConsensusParams.ABCI.VoteExtensionsEnabled and updateToState writing to the same field during finalizeCommit. The gossip routine runs in a separate goroutine and accesses consensus parameters without synchronization while the consensus state machine updates them. ROOT CAUSE: Consensus state (including ConsensusParams) is modified during state transitions (finalizeCommit -> updateToState) while gossip routines concurrently read these fields. No mutex or atomic access protects the shared ConsensusParams structure. LESSON: In BFT implementations, gossip routines and consensus state machines often run concurrently. Any shared state between them (params, height, round, votes) must be protected. Consider: 1) Copy-on-read for config params in gossip routines; 2) Use read-write locks if params change infrequently; 3) Pass immutable snapshots of consensus state to gossip routines; 4) Run race detector (-race flag) in CI to catch these issues early."
+}

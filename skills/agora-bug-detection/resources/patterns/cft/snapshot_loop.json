@@ -1,0 +1,28 @@
+{
+  "tags": [
+    "bug_pattern",
+    "liveness",
+    "cft",
+    "hashicorp-raft",
+    "snapshot",
+    "stream",
+    "protocol",
+    "recovery"
+  ],
+  "context": {
+    "issue_url": "https://github.com/hashicorp/raft/issues/212",
+    "bug_category": "liveness",
+    "pattern_type": "snapshot_recovery_loop",
+    "source_number": 212,
+    "is_pr": false
+  },
+  "reference_count": 0,
+  "led_to_bug": false,
+  "usefulness_score": 0.0,
+  "promoted_to_long_term": true,
+  "promoted_at": "2025-12-04T17:15:00",
+  "embedded": false,
+  "pattern_id": "Infinite snapshot loop - follower rejects but doesn't consume stream data corrupting connection",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: Stale follower gets stuck in infinite snapshot installation loop. DESCRIPTION: A follower that was down for extended period comes back and gets stuck in a loop with the leader trying to install snapshots. Leader sends InstallSnapshot, but follower rejects it due to having higher term (from elections while disconnected). However, follower does NOT consume the snapshot data from the stream. The net_transport then tries to decode a command from the snapshot bytes, fails with codec error, and closes connection. Leader is still writing snapshot data, gets broken pipe. Leader retries the same InstallSnapshot, cycle repeats indefinitely. ROOT CAUSE: The installSnapshot handler doesn't always consume the snapshot stream data when rejecting the request. This leaves garbage data in the connection that corrupts subsequent message parsing. The protocol assumes all sent data is consumed regardless of acceptance. LESSON: In RPC protocols with streaming data: 1) ALWAYS consume all incoming stream data even if rejecting the request; 2) Don't assume connection state is clean after a logical rejection; 3) Protocol-level rejections must still honor transport-level contracts; 4) Test recovery scenarios with nodes that have been down long enough to miss log compaction; 5) Stream-based protocols need explicit boundary handling."
+}

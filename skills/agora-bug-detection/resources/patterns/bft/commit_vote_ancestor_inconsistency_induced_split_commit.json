@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Commit-Vote-Ancestor-Inconsistency-Induced-Split-Commit",
+  "protocol_type": "bft",
+  "description": "When a Byzantine node equivocates with blocks containing different ancestor sets AND different commit votes that are each internally consistent with their respective ancestor sets, the protocol fails to detect that the commit votes are globally inconsistent. This causes honest nodes with different DAG views to reach different commit decisions.\n\nThe attack works as follows:\n1. Byzantine node creates two equivocating blocks at the same slot (same round, same author)\n2. Block A references ancestor set {X, Y, Z} and contains commit vote V1\n3. Block B references ancestor set {X, Y, W} (overlapping but different) and contains commit vote V2\n4. Byzantine node selectively broadcasts Block A to some honest nodes and Block B to others\n5. Each honest node accepts the block it receives and builds subsequent rounds based on its local view\n6. When running the committer, different nodes commit different blocks at the Byzantine slot\n7. This leads to divergent linearized sequences across honest nodes\n\nThe vulnerability exists because the protocol validates commit votes based on local DAG state, but doesn't detect that equivocating blocks with different ancestors can make locally-valid commit votes globally inconsistent.\n\nTesting approach:\n- Create separate DagState instances for different honest nodes to simulate network partition\n- Byzantine node creates equivocating blocks with different ancestor sets and corresponding commit votes\n- Selectively add different blocks to different DagState instances\n- Run UniversalCommitter independently on each DagState\n- Assert that all nodes commit the same blocks at each slot\n- Assert that linearized sequences are identical across all nodes",
+  "fault_type": "byzantine_equivocation",
+  "bug_category": "safety",
+  "trigger_condition": "Byzantine node equivocates with blocks having different ancestor sets and different commit votes, combined with selective broadcast to create divergent DAG views among honest nodes",
+  "test_template": "1. Setup: Create n validators with f Byzantine nodes\n2. Build initial DAG rounds with all honest blocks\n3. Create separate DagState instances for different honest nodes\n4. Byzantine node creates equivocating blocks with:\n   - Same slot (round, author)\n   - Different ancestor sets (overlapping but not identical)\n   - Different commit votes (each consistent with its ancestor set)\n5. Selectively add equivocating blocks to different DagState instances\n6. Build subsequent rounds on each DagState\n7. Run committer independently on each DagState\n8. Assert: All nodes must commit the same blocks at each slot\n9. Assert: Linearized sequences must be identical across all nodes",
+  "discovered_in_repo": "sui",
+  "discovery_date": "2026-01-25T11:40:32.162506",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

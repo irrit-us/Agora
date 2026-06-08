@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Partitioned Commit Overwrite",
+  "protocol_type": "cft",
+  "description": "A replica overwrites a locally COMMITTED instance when receiving a COMMIT message with a higher ballot number for the same instance. This violates the safety property that a committed command's attributes (Seq, Deps) are immutable. In this scenario, a partitioned replica (R1) commits CmdA on the fast path. A recovery leader (R2), unaware of the commit, recovers CmdA with different attributes (depending on a conflicting CmdB) and a higher ballot. When the partition heals, R1 accepts the new attributes, leading to divergent execution orders (R1: A then B, R2: B then A).",
+  "fault_type": "network_partition",
+  "bug_category": "agreement",
+  "trigger_condition": "Network partition separating a fast-path committed replica from the recovery quorum, followed by recovery with a higher ballot.",
+  "test_template": "1. Setup 5 replicas.\n2. R0 proposes CmdA, R1 commits it (Fast Path).\n3. Partition R1.\n4. R3 proposes conflicting CmdB, R2/R3/R4 commit it.\n5. R2 recovers CmdA (higher ballot), forcing dependency on CmdB.\n6. Heal partition. R2 sends new Commit(CmdA) to R1.\n7. Check if R1 overwrites CmdA attributes.\n8. Check for state divergence.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-24T18:13:31.342342",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

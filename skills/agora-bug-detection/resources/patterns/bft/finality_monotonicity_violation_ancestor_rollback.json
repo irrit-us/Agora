@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Finality Monotonicity Violation (Ancestor Rollback)",
+  "protocol_type": "bft",
+  "description": "In decoupled consensus/execution architectures or modular BFT systems, the component responsible for maintaining the ledger state must blindly trust the consensus oracle for finality updates. If the ledger component only verifies that a finalized block is part of the current canonical chain, it misses the temporal invariant of finality: finality is an append-only, irreversible state. A Byzantine actor or faulty consensus module can exploit this by sending a stale or malicious update that moves the finalized pointer backward, un-finalizing previously secured blocks and exposing the system to deep reorganizations and double-spend attacks.",
+  "fault_type": "byzantine_consensus_client / malicious_rpc_input",
+  "bug_category": "safety",
+  "trigger_condition": "A consensus update message (e.g., fork choice update) is received where the newly specified finalized block is an ancestor of the currently finalized block.",
+  "test_template": "1. **Initialize:** Start a target node and sync a linear chain of blocks: `Genesis -> Block 1 -> Block 2 -> Block 3`.",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T11:31:36.700387",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 3322801,
+    "api_cost": 3.7770738
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

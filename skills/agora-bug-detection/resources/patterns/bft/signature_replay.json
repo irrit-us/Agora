@@ -1,0 +1,16 @@
+{
+  "pattern_id": "QC signature replay - verification doesn't validate QC.View matches Block.View",
+  "protocol_type": "bft",
+  "bug_category": "safety",
+  "description": "QC verification does not validate that QC.View matches Block.View, allowing signature replay attacks where attacker forges QCs with arbitrary view numbers",
+  "fault_type": "signature_replay",
+  "trigger_condition": "Attacker takes signatures from legitimate QC (e.g., View 10), creates fake QC with same signatures but different View (e.g., View 100). Fake QC passes verification because signatures only cover block.ToBytes(), not the View.",
+  "root_cause": "VerifyQuorumCert function does not validate QC.View == Block.View. Signatures are valid for the block content but View field is not protected.",
+  "fix_approach": "Add check: if qc.View() != block.View() { return error }",
+  "confirmed_in_repos": [
+    "hotstuff"
+  ],
+  "discovered_at": "2025-12-02",
+  "source_issue": "https://github.com/relab/hotstuff/issues/289",
+  "source_pr": "https://github.com/relab/hotstuff/pull/290"
+}

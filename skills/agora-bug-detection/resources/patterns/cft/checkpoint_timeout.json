@@ -1,0 +1,23 @@
+{
+  "tags": [
+    "bug_pattern",
+    "timeout_handler",
+    "mode_state",
+    "checkpoint",
+    "paxos",
+    "phxpaxos",
+    "initialization_failure"
+  ],
+  "context": {
+    "issue_url": "https://github.com/Tencent/phxpaxos/issues/158",
+    "bug_category": "state_inconsistency",
+    "pattern_type": "timeout_handler_mode_inconsistency",
+    "confirmed_by": "collaborator (lynncui00)",
+    "trigger": "timeout during checkpoint transfer",
+    "symptom": "paxos initialization failure after restart",
+    "fix_approach": "add mode check in OnReceivePaxosMsg"
+  },
+  "pattern_id": "Timeout handler not respecting AskforcheckpointMode causing storage corruption",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: Timeout Handler Not Respecting Mode State. DESCRIPTION: In AskforcheckpointMode, Instance::OnReceive correctly ignores all paxos messages, but Instance::OnTimeout does not check this mode and continues to process timeout events. This inconsistency causes corruption during checkpoint transfer. ROOT CAUSE: The OnTimeout handler was not updated to respect the AskforcheckpointMode flag when it was added to OnReceive. This is a common pattern where new state/mode checks are added to one code path but forgotten in related handlers. SCENARIO: (1) Node N starts with very old instance id x, (2) N receives new propose request and processes prepare+accept, (3) N discovers it's behind via AskforLearn, starts checkpoint transfer, (4) During checkpoint transfer, prepare times out, (5) OnTimeout triggers second prepare+accept - paxos storage should be empty but record is unexpectedly written, (6) Checkpoint transfer completes, N restarts, (7) After restart, paxos finds max instance id is x in log but checkpoint instance id is much larger, (8) Protection logic triggers, paxos initialization fails. FIX: Add mode check in OnReceivePaxosMsg to ignore all messages when in AskforcheckpointMode, blocking all sources of unwanted writes. LESSON: When adding mode/state flags that disable certain operations, audit ALL code paths that could trigger those operations - not just the obvious message handlers but also timers, callbacks, and error handlers. Timeout handlers are often forgotten when adding new operational modes."
+}

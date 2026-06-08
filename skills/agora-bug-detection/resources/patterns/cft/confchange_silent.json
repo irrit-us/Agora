@@ -1,0 +1,16 @@
+{
+  "pattern_id": "ConfChange silently converted to no-op without error when rejected due to pending change",
+  "protocol_type": "cft",
+  "bug_category": "liveness",
+  "description": "ConfChange silently converted to no-op without error notification when rejected due to pending change",
+  "fault_type": "silent_failure",
+  "trigger_condition": "Application proposes ConfChange while another ConfChange is pending. The new ConfChange is silently converted to no-op entry instead of returning an error.",
+  "root_cause": "When ConfChange is rejected due to pending change, code converts it to empty entry without notifying the caller. Application believes ConfChange succeeded but it was actually dropped.",
+  "fix_approach": "Return explicit error when ConfChange is rejected instead of silently converting to no-op.",
+  "confirmed_in_repos": [
+    "etcd-io/raft"
+  ],
+  "discovered_at": "2025-12-01",
+  "source_issue": "https://github.com/etcd-io/raft/issues/354",
+  "source_pr": "https://github.com/etcd-io/raft/pull/355"
+}

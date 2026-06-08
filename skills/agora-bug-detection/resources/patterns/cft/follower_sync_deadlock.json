@@ -1,0 +1,26 @@
+{
+  "tags": [
+    "bug_pattern",
+    "deadlock",
+    "lock_ordering",
+    "follower_sync",
+    "zookeeper",
+    "quorum",
+    "blocker"
+  ],
+  "context": {
+    "issue_url": "https://issues.apache.org/jira/browse/ZOOKEEPER-2778",
+    "bug_category": "deadlock",
+    "pattern_type": "lock_ordering_deadlock",
+    "priority": "Blocker",
+    "fix_version": "3.5.5, 3.6.0",
+    "component": "quorum",
+    "concurrent_paths": [
+      "follower sync with leader",
+      "external connection requests"
+    ]
+  },
+  "pattern_id": "Deadlock between follower sync with leader and external connection request handling",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: Follower Sync Deadlock with External Connection Requests. DESCRIPTION: A potential server deadlock occurs between follower synchronization with leader and follower receiving external connection requests. When a follower is in the process of syncing with the leader, and simultaneously receives external client connection requests, the two code paths can deadlock due to lock ordering issues. ROOT CAUSE: The follower sync process holds certain locks while communicating with the leader, while the external connection handling code path attempts to acquire locks in a different order. This creates a classic lock ordering deadlock scenario. The quorum component's synchronization logic was not designed to handle concurrent external requests during the critical sync phase. IMPACT: Server becomes completely unresponsive - a Blocker priority issue. The deadlock prevents the follower from completing sync and from serving any client requests. In a production cluster, this can cause cascading failures if multiple followers hit this condition. FIX: Ensure consistent lock ordering between the sync path and connection handling path, or use lock-free synchronization mechanisms for the critical sections. LESSON: In distributed systems, be extremely careful about lock ordering when multiple code paths (sync with leader, handle client requests) can run concurrently. The sync/recovery path often has different lock requirements than normal operation, making it a common source of deadlocks."
+}

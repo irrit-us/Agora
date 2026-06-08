@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Byzantine Leader Withholds QC Then Selectively Injects Conflicting Chain During View Change",
+  "protocol_type": "bft",
+  "description": "A Byzantine leader can withhold a valid QC across a view change, then selectively reveal it to a subset of honest nodes in a later view. This causes honest nodes to have inconsistent HighQC states. When the Byzantine leader later proposes conflicting blocks (one extending the withheld block, another extending the honest chain), nodes with different HighQC states accept different proposals. This leads to commit divergence where different honest nodes commit different blocks at the same height, violating safety.\n\nThe vulnerability occurs because the VoteRule only checks if a proposal extends bLock or has a higher QC than the current HighQC, but doesn't verify that the proposal is consistent with the node's voting history. A node that has already voted for blocks B5\u2192B6\u2192B7 should reject a proposal B8' that extends B4 (which conflicts with B5), even if B4 has a valid QC.\n\nAttack Flow:\n1. Byzantine leader proposes B4 in view 4, collects QC4, but withholds it\n2. Honest leader proposes B5 extending B3 in view 5 (doesn't know about B4)\n3. Chain extends to B6, B7 with all honest nodes voting\n4. Byzantine leader selectively sends B4+QC4 to Node 1 only\n5. Byzantine leader proposes B8' extending B4 to Node 1, and B8 extending B7 to others\n6. Node 1 accepts B8' (BUG!), while others accept B8\n7. Different nodes commit different blocks \u2192 Safety violation",
+  "fault_type": "byzantine_leader",
+  "bug_category": "safety",
+  "trigger_condition": "Byzantine leader can withhold QCs and selectively distribute them to create inconsistent HighQC states across honest nodes. Requires Byzantine leader in multiple non-consecutive views (e.g., views 4 and 7) with honest leaders in between.",
+  "test_template": "1. Setup n=4 nodes with Byzantine leader in views V1 and V2 (non-consecutive)\n2. Build honest chain Genesis \u2192 B1 \u2192 B2 \u2192 B3 with all nodes having HighQC=QC3\n3. View V1: Byzantine leader proposes B4 extending B3, forms QC4, but withholds QC4\n4. View V1+1: Honest leader proposes B5 extending B3 (doesn't know about B4), forms QC5\n5. View V1+2: Extend honest chain to B6, B7 with QC6, QC7\n6. View V2: Byzantine leader selectively sends B4+QC4 to Node 1 only\n7. View V2+1: Byzantine leader proposes B8' extending B4 to Node 1, and B8 extending B7 to others\n8. Test: Does Node 1 accept B8' even though it conflicts with B5\u2192B6\u2192B7?\n9. Build 3-chains on both forks and check if commits diverge\n10. Assert: All honest nodes should commit the same blocks at each height",
+  "discovered_in_repo": "hotstuff",
+  "discovery_date": "2026-01-25T11:20:12.419468",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

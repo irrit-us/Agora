@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Unpersisted Write Acknowledgement",
+  "protocol_type": "cft",
+  "description": "This pattern targets the \"Check-IO-Reply\" sequence in consensus protocols. Implementations often attempt to minimize latency by sending network replies in parallel with disk writes or before the disk write completes (optimistic replying).",
+  "fault_type": "crash_recovery",
+  "bug_category": "agreement",
+  "trigger_condition": "Node crash occurs immediately after sending a positive acknowledgment to a state-changing request (Accept, AppendEntries, Prepare) but before flushing to disk.",
+  "test_template": "1.  **Setup**: Create a cluster (e.g., 3 nodes). Partition one node to force a smaller quorum or specific recovery path.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-27T02:31:44.293240",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 1550185,
+    "api_cost": 2.0134608
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

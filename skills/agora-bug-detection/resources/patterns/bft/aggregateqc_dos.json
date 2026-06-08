@@ -1,0 +1,37 @@
+{
+  "pattern_id": "Byzantine DoS via insufficient QC validation - single malicious node can stall consensus by forging high-view QCs",
+  "protocol_type": "bft",
+  "description": "BUG PATTERN: Byzantine DoS via Insufficient QC Validation. DESCRIPTION: AggregateQC creation and verification has a critical vulnerability allowing a single Byzantine node to indefinitely stall consensus. CreateAggregateQC collects QCs from TimeoutMsg payloads without individually verifying each QC's validity - it blindly trusts received QCs. VerifyAggregateQC only verifies the highQC (highest view QC), creating a single point of failure. ROOT CAUSE: A Byzantine replica can craft a TimeoutMsg with a forged QC having a deceptively high view number. When leader creates AggregateQC, this invalid highQC is included. When honest replicas verify, the VerifyQuorumCert(highQC) check fails, causing entire AggregateQC rejection. ATTACK SCENARIO: (1) Byzantine sends forged high-view QC in TimeoutMsg, (2) Leader trustingly includes it in AggregateQC, (3) Leader proposes AggregateQC, (4) Honest nodes verify - highQC verification fails, (5) AggregateQC rejected, (6) Consensus stalls indefinitely. IMPACT: Single malicious actor can perpetually halt consensus - complete blockchain stall. FIX: Verify each individual QC before inclusion in AggregateQC. CreateAggregateQC should validate all QCs using VerifyQuorumCert, only including valid ones. LESSON: In BFT protocols, never trust data from other nodes without verification. Every QC, vote, or certificate received must be independently verified before use. Aggregate structures that combine multiple certificates must verify each component, not just the aggregate result.",
+  "fault_type": null,
+  "bug_category": null,
+  "trigger_condition": null,
+  "test_template": null,
+  "discovered_in_repo": null,
+  "discovery_date": null,
+  "discovery_process": null,
+  "tags": [
+    "bug_pattern",
+    "byzantine",
+    "dos",
+    "liveness",
+    "qc_validation",
+    "hotstuff",
+    "security"
+  ],
+  "context": {
+    "issue_url": "https://github.com/relab/hotstuff/issues/224",
+    "bug_category": "security",
+    "pattern_type": "insufficient_validation_dos",
+    "confirmed_by": "member (meling)",
+    "attack_type": "single Byzantine node DoS",
+    "vulnerable_functions": [
+      "CreateAggregateQC",
+      "VerifyAggregateQC"
+    ],
+    "fix_approach": "verify each QC individually before aggregation"
+  },
+  "tested_repos": [
+    "hotstuff"
+  ],
+  "confirmed_in_repos": []
+}

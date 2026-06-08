@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Recovery State Regression (Status Hierarchy Violation)",
+  "protocol_type": "cft",
+  "description": "This pattern occurs in consensus protocols (Paxos, Raft, EPaxos) during the leader election or recovery phase. The new leader polls a quorum to determine the latest state of a log entry. The vulnerability exists if the leader's aggregation logic counts votes for specific values without respecting the protocol's state hierarchy.",
+  "fault_type": "Crash Recovery / Partition",
+  "bug_category": "safety",
+  "trigger_condition": "Recovery Quorum contains a minority of \"Advanced\" states (Accepted/Prepared) and a majority of \"Initial\" states (PreAccepted/Proposed).",
+  "test_template": "1.  **Setup**: Initialize a cluster of size $N$ with failure tolerance $F$.",
+  "discovered_in_repo": "efficient-epaxos",
+  "discovery_date": "2026-01-27T02:50:17.586752",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 2944853,
+    "api_cost": 3.6096907999999996
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

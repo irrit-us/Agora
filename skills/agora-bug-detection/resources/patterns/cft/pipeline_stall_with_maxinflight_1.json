@@ -1,0 +1,16 @@
+{
+  "pattern_id": "Pipeline Stall with MaxInflight=1",
+  "protocol_type": "cft",
+  "description": "When MaxInflight is set to 1, if a MsgApp is lost, the Leader remains permanently paused.\nThe Leader's Inflights buffer is full (1/1).\nHeartbeats continue, and the Follower responds with its current Match index (which is old).\nHowever, the Leader does not use the HeartbeatResp to clear the Inflights buffer or trigger a resend when MaxInflight is full and the Match index indicates the Follower hasn't received the inflight entries.\nThis leads to a deadlock where the Leader never sends new entries or resends old ones.",
+  "fault_type": "network_partition",
+  "bug_category": "liveness",
+  "trigger_condition": "MaxInflight=1 AND MsgApp loss",
+  "test_template": "func TestPipelineStallWithMaxInflightOne(t *testing.T) {\n    // Setup Leader with MaxInflight=1\n    // Fill Inflights with 1 MsgApp\n    // Drop that MsgApp\n    // Exchange Heartbeats (Follower reports old index)\n    // Propose new entry\n    // Assert that Leader is still paused and sends no MsgApp\n}",
+  "discovered_in_repo": "raft",
+  "discovery_date": "2026-01-24T18:13:54.418299",
+  "discovery_process": "auto-discovered by TestGen Agent",
+  "tags": [],
+  "context": {},
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

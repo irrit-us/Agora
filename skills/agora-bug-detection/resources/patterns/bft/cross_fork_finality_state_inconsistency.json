@@ -1,0 +1,19 @@
+{
+  "pattern_id": "Cross-Fork Finality State Inconsistency",
+  "protocol_type": "bft",
+  "description": "This vulnerability pattern occurs when distributed consensus protocols maintain multiple finality markers (e.g., finalized, safe, justified) but fail to validate ancestry relationships between them. The core issue is **incomplete invariant enforcement** where the protocol validates some but not all required ancestry constraints.",
+  "fault_type": "byzantine_consensus_client",
+  "bug_category": "safety",
+  "trigger_condition": "Byzantine consensus client sends forkchoice updates with finality markers (safe, finalized) pointing to blocks on divergent forks, exploiting incomplete ancestry validation in the execution layer's forkchoice handler.",
+  "test_template": "```",
+  "discovered_in_repo": "go-ethereum",
+  "discovery_date": "2026-03-28T14:38:29.248599",
+  "discovery_process": "auto-discovered by Orchestrator Agent",
+  "tags": [],
+  "context": {
+    "tokens_used": 4030075,
+    "api_cost": 13.744569000000002
+  },
+  "tested_repos": [],
+  "confirmed_in_repos": []
+}

@@ -1,0 +1,35 @@
+{
+  "pattern_id": "Variable override causes ReadIndex request silently dropped during heartbeat response",
+  "protocol_type": "cft",
+  "description": "BUG PATTERN: Variable Override Causes Request Dropping. DESCRIPTION: In the heartbeat response handling code, the more_to_send variable is assigned twice, with the second assignment overriding the first, causing ReadIndex requests to be silently dropped. ROOT CAUSE: At line 1185-1203 in raft.rs, when processing heartbeat responses, the code first assigns more_to_send = Some(read_index_msg) for pending ReadIndex requests, but later unconditionally assigns more_to_send = Some(to_send), overriding the previous value and losing the ReadIndex request. SCENARIO: (1) Leader has pending ReadIndex request, (2) Heartbeat response arrives, (3) Code sets more_to_send to ReadIndex message, (4) Later code overwrites more_to_send with another message, (5) ReadIndex request is silently dropped, (6) Client waiting for ReadIndex never gets response. IMPACT: ReadIndex requests can be lost, causing linearizable reads to timeout or fail. Under normal conditions this rarely happens (one ReadIndex per heartbeat round), but under high load or specific network conditions it becomes more likely. FIX: Use a vector or properly merge messages instead of single variable assignment, or ensure ReadIndex messages are never overwritten. LESSON: When using a single variable to hold pending work, be careful about multiple assignment paths that can override each other. Silent request dropping is particularly dangerous as it causes timeouts rather than explicit errors. Consider using explicit queues or vectors for pending work items.",
+  "fault_type": null,
+  "bug_category": null,
+  "trigger_condition": null,
+  "test_template": null,
+  "discovered_in_repo": null,
+  "discovery_date": null,
+  "discovery_process": null,
+  "tags": [
+    "bug_pattern",
+    "variable_override",
+    "request_dropping",
+    "readindex",
+    "raft",
+    "silent_failure"
+  ],
+  "context": {
+    "issue_url": "https://github.com/tikv/raft-rs/issues/167",
+    "bug_category": "liveness",
+    "pattern_type": "variable_override_request_drop",
+    "confirmed_by": "contributor (siddontang)",
+    "code_location": "raft.rs lines 1185-1203",
+    "trigger_condition": "heartbeat response with pending ReadIndex",
+    "symptom": "ReadIndex requests silently dropped"
+  },
+  "tested_repos": [
+    "raft"
+  ],
+  "confirmed_in_repos": [
+    "raft"
+  ]
+}
